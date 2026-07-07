@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aegisbench"
+version = "0.1.0"
+description = "Robustness benchmark for aerial search-and-rescue person detection under disaster-grounded visual corruptions"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "AegisBench Authors" }]
+dependencies = [
+    "numpy",
+    "opencv-python-headless",
+    "pillow",
+    "pyyaml",
+    "matplotlib",
+    "pandas",
+    "pycocotools",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+# torch/torchvision/ultralytics are installed separately: the required
+# build depends on the GPU (see scripts/setup_env_sm120.sh).
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

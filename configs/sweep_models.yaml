@@ -1,0 +1,11 @@
+# Models entering the Phase 5 stress-test sweep. Fill in the weights paths
+# produced by Phase 4 before running.
+- kind: yolo11
+  weights: runs/yolo11/yolo11_heridal_clean/weights/best.pt
+  imgsz: 1024
+- kind: rtdetr
+  weights: runs/rtdetr/rtdetr_heridal_clean/weights/best.pt
+  imgsz: 1024
+- kind: fasterrcnn
+  weights: runs/fasterrcnn/fasterrcnn_best.pt
+  imgsz: 1024

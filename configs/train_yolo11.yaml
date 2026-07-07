@@ -1,0 +1,16 @@
+# YOLOv11 fine-tune on clean tiles. 8 GB VRAM budget: yolo11m at 1024 px,
+# batch 4, AMP on. If you OOM, drop batch to 2 before dropping imgsz —
+# person instances are small and resolution matters more than batch size.
+kind: yolo11
+run_name: yolo11_heridal_clean
+base_weights: yolo11m.pt
+data_yaml: data/heridal/tiles/dataset.yaml
+epochs: 80
+imgsz: 1024
+batch: 4
+seed: 17
+amp: true
+optimizer: auto
+lr0: 0.01
+patience: 20
+workers: 4

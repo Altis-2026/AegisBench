@@ -1,0 +1,25 @@
+# local identity terms for the anonymization scanner — never commit
+.anonymize-terms.txt
+
+# data & experiment outputs
+data/
+runs/
+results/
+*.pt
+*.pth
+*.onnx
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store

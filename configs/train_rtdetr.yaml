@@ -1,0 +1,15 @@
+# RT-DETR-L fine-tune. Transformer decoder is memory-hungry: batch 2 at
+# 1024 px on 8 GB. Same seed policy as the other detectors.
+kind: rtdetr
+run_name: rtdetr_heridal_clean
+base_weights: rtdetr-l.pt
+data_yaml: data/heridal/tiles/dataset.yaml
+epochs: 80
+imgsz: 1024
+batch: 2
+seed: 17
+amp: true
+optimizer: auto
+lr0: 0.0001
+patience: 20
+workers: 4

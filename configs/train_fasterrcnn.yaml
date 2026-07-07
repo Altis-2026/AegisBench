@@ -1,0 +1,12 @@
+# Faster R-CNN ResNet-50 FPN v2 (torchvision), the two-stage contrast
+# baseline. Trains on the same YOLO-format tiles as the others.
+kind: fasterrcnn
+run_name: fasterrcnn_heridal_clean
+train_images: data/heridal/tiles/train/images
+train_labels: data/heridal/tiles/train/labels
+epochs: 26
+batch: 2
+seed: 17
+amp: true
+lr0: 0.005
+workers: 4
