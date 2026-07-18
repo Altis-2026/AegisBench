@@ -19,8 +19,22 @@ source "$VENV_DIR/bin/activate"
 python -m pip install --upgrade pip
 
 # PyTorch nightly with CUDA 12.8 (try cu130 if cu128 wheels disappear).
-pip install --pre torch torchvision \
-  --index-url https://download.pytorch.org/whl/nightly/cu128
+#
+# The nightly torch/torchvision publishing pipelines are independent and
+# occasionally drift a day apart, so the index can briefly contain a torch
+# build with no matching torchvision (or vice versa), which pip's resolver
+# correctly refuses to pair. If the direct install fails, fall back to
+# installing torch alone, then torchvision without its exact-version pin —
+# one day of nightly drift is essentially always ABI-compatible, and the
+# import check right after installation proves it rather than assuming it.
+TORCH_INDEX="https://download.pytorch.org/whl/nightly/cu128"
+if ! pip install --pre torch torchvision --index-url "$TORCH_INDEX"; then
+  echo
+  echo "torch/torchvision nightly builds are out of sync on the index today."
+  echo "Falling back: install torch, then torchvision without its exact pin."
+  pip install --pre torch --index-url "$TORCH_INDEX"
+  pip install --pre torchvision --index-url "$TORCH_INDEX" --no-deps
+fi
 
 # Everything else from PyPI. ultralytics must NOT drag in its own torch:
 # install with --no-deps and add its remaining deps explicitly.
@@ -29,6 +43,11 @@ pip install numpy opencv-python pillow pyyaml matplotlib pandas \
 pip install --no-deps ultralytics
 
 pip install -e .
+
+echo
+echo "Verifying torch/torchvision import compatibility..."
+python -c "import torch, torchvision; \
+print('torch', torch.__version__); print('torchvision', torchvision.__version__)"
 
 echo
 echo "Setup done. Now verify the GPU end-to-end:"
