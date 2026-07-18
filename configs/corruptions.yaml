@@ -64,10 +64,14 @@ corruptions:
       image is alpha-blended with murky water, warped by a sinusoidal ripple
       displacement, and sprinkled with small specular sparkle.
     calibration: {stat: occluded_fraction, direction: increasing}
+    # Ripple amplitude kept deliberately small: it displaces submerged
+    # pixels but the fixed gt box is NOT warped to match, so amplitude is
+    # bounded well below person scale to keep gt/pixel alignment tight.
+    # At severity 3 on a 4000 px frame the max displacement is ~1.4 px.
     severities:
-      1: {coverage: 0.20, opacity: 0.50, ripple_amp_per_1000px: 1.5}
-      2: {coverage: 0.40, opacity: 0.65, ripple_amp_per_1000px: 2.5}
-      3: {coverage: 0.60, opacity: 0.80, ripple_amp_per_1000px: 4.0}
+      1: {coverage: 0.20, opacity: 0.50, ripple_amp_per_1000px: 0.15}
+      2: {coverage: 0.40, opacity: 0.65, ripple_amp_per_1000px: 0.25}
+      3: {coverage: 0.60, opacity: 0.80, ripple_amp_per_1000px: 0.35}
     fixed:
       water_color_rgb: [0.35, 0.38, 0.30]
       ripple_wavelength_per_1000px: 60.0

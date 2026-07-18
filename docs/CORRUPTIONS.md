@@ -59,6 +59,34 @@ amplitude) are specified per 1000 px of the longer image side and scaled at
 runtime, so severity means the same thing on a 4000x3000 HERIDAL frame and
 a 1920x1080 SARD frame.
 
+## Ground-truth / pixel alignment
+
+Corruptions are appearance-only: they recolor, darken, haze, or overlay the
+existing pixel grid without moving object content, so the ground-truth
+boxes drawn on the clean grid remain exactly valid on the corrupted grid.
+This pixel-for-pixel alignment is what makes the clean-vs-corrupted recall
+comparison fair.
+
+The one corruption with any geometric component is `inundation`, whose
+water-refraction ripple displaces submerged pixels via `cv2.remap` while
+the gt box stays fixed. The ripple amplitude is deliberately bounded well
+below person scale (max ~1.4 px at severity 3 on a 4000 px frame — a few
+percent of even the smallest survivor), so the residual gt/pixel
+misalignment is negligible; the occlusion and murky-water blend, not the
+ripple, carry the degradation. This bound is stated as a minor limitation
+rather than hidden.
+
+## Localization stability (second robustness axis)
+
+Beyond recall (did we still find the survivor), the evaluator also reports
+**localization stability** for survivors detected in both the clean and
+corrupted conditions: the IoU between the clean and corrupted predicted
+boxes, a scale-normalized center-shift, and the drop in box-vs-gt fit. This
+separates two distinct failure modes — losing the detection entirely vs.
+keeping it but with a box that drifts off the person — and directly
+supports the failure-mode analysis in Section 5. See
+`src/aegisbench/evaluation/localization.py`.
+
 ## Test-time vs. train-time application
 
 At evaluation, corruptions are applied to the **full image before
