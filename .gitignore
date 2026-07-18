@@ -19,7 +19,8 @@ venv/
 build/
 dist/
 
-# editors / os
+# editors / os / local harness
+.claude/
 .vscode/
 .idea/
 .DS_Store

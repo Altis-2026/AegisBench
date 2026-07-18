@@ -25,8 +25,8 @@ from pathlib import Path
 
 TEXT_EXTS = {".py", ".md", ".yaml", ".yml", ".txt", ".sh", ".cfg", ".toml",
              ".json", ".ipynb", ".tex", ".bib", ".html", ".csv"}
-SKIP_DIRS = {".git", "__pycache__", ".venv", "venv", "data", "runs",
-             "results", ".pytest_cache", "node_modules"}
+SKIP_DIRS = {".git", ".claude", "__pycache__", ".venv", "venv", "data",
+             "runs", "results", ".pytest_cache", "node_modules"}
 URL_ALLOWLIST = (
     "pytorch.org", "github.com/ultralytics", "docs.ultralytics.com",
     "ieee-dataport.org", "fesb.unist.hr", "cocodataset.org",
