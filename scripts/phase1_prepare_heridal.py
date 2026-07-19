@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 """Phase 1 (HERIDAL): parse the manually downloaded archive, report counts,
-carve a validation split from official train, and save canonical records.
+obtain a validation split, and save canonical records.
 
-Usage:
+Usage (official 2-folder HERIDAL: carves 15% of train as validation):
   python scripts/phase1_prepare_heridal.py \
       --train-images data/heridal/trainImages \
       --test-images data/heridal/testImages \
       [--train-labels DIR --test-labels DIR] --out data/heridal/records
+
+Usage (Roboflow-style export that already has its own train/valid/test):
+  python scripts/phase1_prepare_heridal.py \
+      --train-images data/heridal_raw/train \
+      --val-images data/heridal_raw/valid \
+      --test-images data/heridal_raw/test --out data/heridal/records
+
+Roboflow's images and XML labels typically sit together in the same
+directory (no separate labels/ subfolder) — load_split() already handles
+that layout automatically, no --train-labels/--test-labels needed.
 
 Then run scripts/phase1_visual_check.py and INSPECT the overlays before
 continuing (Phase 1 checkpoint).
@@ -27,8 +37,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--train-images", required=True)
     ap.add_argument("--test-images", required=True)
+    ap.add_argument("--val-images", default=None,
+                    help="if the source already provides its own "
+                         "validation split (e.g. Roboflow's valid/ "
+                         "folder), use it directly instead of carving "
+                         "--val-fraction out of train")
     ap.add_argument("--train-labels", default=None)
     ap.add_argument("--test-labels", default=None)
+    ap.add_argument("--val-labels", default=None)
     ap.add_argument("--val-fraction", type=float, default=0.15)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -38,7 +54,10 @@ def main() -> int:
 
     train_all = load_split(args.train_images, args.train_labels)
     test = load_split(args.test_images, args.test_labels)
-    train, val = train_val_split(train_all, args.val_fraction)
+    if args.val_images:
+        train, val = train_all, load_split(args.val_images, args.val_labels)
+    else:
+        train, val = train_val_split(train_all, args.val_fraction)
 
     report = {}
     for name, recs in (("train", train), ("val", val), ("test", test)):

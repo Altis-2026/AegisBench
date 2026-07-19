@@ -50,6 +50,50 @@ def parse_voc_xml(xml_path: str | Path,
             "n_ignored_objects": ignored}
 
 
+def image_size(image_path: str | Path) -> tuple[int, int]:
+    from PIL import Image
+    with Image.open(image_path) as im:
+        return im.size          # (width, height)
+
+
+def parse_yolo_label(image_path: str | Path, label_path: str | Path,
+                     person_class_ids: set[int] | None = None) -> dict:
+    """Parse one YOLO-format label file (normalized 'cls cx cy w h' per
+    line) into the canonical record. Image dimensions are read from the
+    image itself since YOLO coordinates carry no size metadata.
+
+    person_class_ids: if given, only these class ids become boxes (objects
+    of other classes are counted in n_ignored_objects). If None, EVERY box
+    is treated as person — the correct default for single-class person
+    detection exports where class 0 is the only class.
+    """
+    width, height = image_size(image_path)
+    boxes, ignored = [], 0
+    label_path = Path(label_path)
+    if label_path.exists():
+        for line in label_path.read_text().splitlines():
+            parts = line.split()
+            if len(parts) != 5:
+                continue
+            cls_id = int(float(parts[0]))
+            if person_class_ids is not None and cls_id not in person_class_ids:
+                ignored += 1
+                continue
+            cx, cy, bw, bh = map(float, parts[1:])
+            x1 = (cx - bw / 2) * width
+            y1 = (cy - bh / 2) * height
+            x2 = (cx + bw / 2) * width
+            y2 = (cy + bh / 2) * height
+            x1, y1 = max(0.0, x1), max(0.0, y1)
+            x2, y2 = min(float(width), x2), min(float(height), y2)
+            if x2 - x1 >= 1 and y2 - y1 >= 1:
+                boxes.append([x1, y1, x2, y2])
+    return {"image_id": Path(image_path).stem,
+            "width": width, "height": height,
+            "boxes": np.asarray(boxes, np.float32).reshape(-1, 4),
+            "n_ignored_objects": ignored}
+
+
 def write_yolo_labels(records: list[dict], out_dir: str | Path) -> None:
     """Write one YOLO txt per record (class 0 = person, normalized cxcywh)."""
     out_dir = Path(out_dir)
