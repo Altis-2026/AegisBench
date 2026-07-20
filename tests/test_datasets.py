@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from PIL import Image
 
 from aegisbench.datasets.common import parse_voc_xml, parse_yolo_label
+from aegisbench.datasets.heridal import load_from_imagesets
 from aegisbench.datasets.sard import (group_key, group_split,
                                       load_pooled_roboflow_yolo)
 
@@ -153,3 +154,50 @@ def test_load_pooled_roboflow_yolo_then_group_split_no_leakage(tmp_path):
         ga = {group_key(r["image_id"]) for r in a}
         gb = {group_key(r["image_id"]) for r in b}
         assert not ga & gb, "video group straddles splits after rebuild"
+
+
+def _make_voc_root(root, image_ids_with_xml, image_ids_without_xml=(),
+                   split_membership=None):
+    """Standard VOC layout: shared JPEGImages/+Annotations/ pool, split
+    membership listed in ImageSets/Main/<split>.txt files."""
+    (root / "JPEGImages").mkdir(parents=True, exist_ok=True)
+    (root / "Annotations").mkdir(parents=True, exist_ok=True)
+    (root / "ImageSets" / "Main").mkdir(parents=True, exist_ok=True)
+    for image_id in list(image_ids_with_xml) + list(image_ids_without_xml):
+        _make_image(root / "JPEGImages" / f"{image_id}.jpg",
+                   width=200, height=100)
+    for image_id in image_ids_with_xml:
+        (root / "Annotations" / f"{image_id}.xml").write_text(
+            f"<annotation><size><width>200</width><height>100</height>"
+            f"<depth>3</depth></size><object><name>person</name><bndbox>"
+            f"<xmin>10</xmin><ymin>10</ymin><xmax>50</xmax><ymax>90</ymax>"
+            f"</bndbox></object></annotation>")
+    for split_name, ids in (split_membership or {}).items():
+        (root / "ImageSets" / "Main" / f"{split_name}.txt").write_text(
+            "\n".join(ids) + "\n")
+
+
+def test_load_from_imagesets_reads_listed_split(tmp_path):
+    root = tmp_path / "voc_root"
+    _make_voc_root(root, image_ids_with_xml=["train_A_0001", "train_A_0002",
+                                             "test_B_0001"],
+                   split_membership={
+                       "train": ["train_A_0001", "train_A_0002"],
+                       "test": ["test_B_0001"]})
+    train = load_from_imagesets(root, "train")
+    test = load_from_imagesets(root, "test")
+    assert {r["image_id"] for r in train} == {"train_A_0001", "train_A_0002"}
+    assert {r["image_id"] for r in test} == {"test_B_0001"}
+    for r in train + test:
+        assert r["width"] == 200 and r["height"] == 100
+        assert len(r["boxes"]) == 1
+
+
+def test_load_from_imagesets_skips_ids_missing_annotation(tmp_path):
+    root = tmp_path / "voc_root"
+    _make_voc_root(root, image_ids_with_xml=["train_A_0001"],
+                   image_ids_without_xml=["train_A_0002"],
+                   split_membership={
+                       "train": ["train_A_0001", "train_A_0002"]})
+    train = load_from_imagesets(root, "train")
+    assert {r["image_id"] for r in train} == {"train_A_0001"}

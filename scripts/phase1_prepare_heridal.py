@@ -14,6 +14,13 @@ Usage (Roboflow-style export that already has its own train/valid/test):
       --val-images data/heridal_raw/valid \
       --test-images data/heridal_raw/test --out data/heridal/records
 
+Usage (standard VOC layout: shared JPEGImages/+Annotations/ pool, split
+membership listed in ImageSets/Main/{train,val,test}.txt -- e.g. the
+keras-retinanet VOC repackaging):
+  python scripts/phase1_prepare_heridal.py \
+      --voc-root data/heridal_full/heridal_keras_retinanet_voc \
+      --out data/heridal/records
+
 Roboflow's images and XML labels typically sit together in the same
 directory (no separate labels/ subfolder) — load_split() already handles
 that layout automatically, no --train-labels/--test-labels needed.
@@ -30,18 +37,23 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from aegisbench.datasets.common import save_records, summarize_records
-from aegisbench.datasets.heridal import load_split, train_val_split
+from aegisbench.datasets.heridal import (load_from_imagesets, load_split,
+                                         train_val_split)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--train-images", required=True)
-    ap.add_argument("--test-images", required=True)
+    ap.add_argument("--train-images", default=None)
+    ap.add_argument("--test-images", default=None)
     ap.add_argument("--val-images", default=None,
                     help="if the source already provides its own "
                          "validation split (e.g. Roboflow's valid/ "
                          "folder), use it directly instead of carving "
                          "--val-fraction out of train")
+    ap.add_argument("--voc-root", default=None,
+                    help="root of a standard VOC layout with "
+                         "ImageSets/Main/{train,val,test}.txt; mutually "
+                         "exclusive with --train-images/--test-images")
     ap.add_argument("--train-labels", default=None)
     ap.add_argument("--test-labels", default=None)
     ap.add_argument("--val-labels", default=None)
@@ -52,12 +64,24 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    train_all = load_split(args.train_images, args.train_labels)
-    test = load_split(args.test_images, args.test_labels)
-    if args.val_images:
-        train, val = train_all, load_split(args.val_images, args.val_labels)
+    if bool(args.voc_root) == bool(args.train_images):
+        raise SystemExit("pass exactly one of --voc-root or "
+                         "--train-images/--test-images")
+
+    if args.voc_root:
+        train = load_from_imagesets(args.voc_root, "train")
+        val = load_from_imagesets(args.voc_root, "val")
+        test = load_from_imagesets(args.voc_root, "test")
     else:
-        train, val = train_val_split(train_all, args.val_fraction)
+        if not args.test_images:
+            raise SystemExit("--test-images is required with --train-images")
+        train_all = load_split(args.train_images, args.train_labels)
+        test = load_split(args.test_images, args.test_labels)
+        if args.val_images:
+            train, val = train_all, load_split(args.val_images,
+                                               args.val_labels)
+        else:
+            train, val = train_val_split(train_all, args.val_fraction)
 
     report = {}
     for name, recs in (("train", train), ("val", val), ("test", test)):

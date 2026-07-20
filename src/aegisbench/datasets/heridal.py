@@ -72,3 +72,43 @@ def train_val_split(train_records: list[dict], val_fraction: float = 0.15,
     train = [r for i, r in enumerate(train_records) if i not in val_ids]
     val = [r for i, r in enumerate(train_records) if i in val_ids]
     return train, val
+
+
+def load_from_imagesets(voc_root: str | Path, split_name: str,
+                        images_subdir: str = "JPEGImages",
+                        annotations_subdir: str = "Annotations",
+                        imagesets_subdir: str = "ImageSets/Main"
+                        ) -> list[dict]:
+    """Load a split from a standard PASCAL-VOC layout where images and
+    annotations live in ONE shared pool (JPEGImages/, Annotations/) and
+    ImageSets/Main/<split_name>.txt just lists which image ids belong to
+    that split -- as opposed to load_split()'s per-split directory layout.
+
+    This is what re-packaged VOC-format HERIDAL mirrors typically use
+    (e.g. the keras-retinanet conversion), and it carries the ORIGINAL
+    author-provided train/val/test membership rather than a re-split.
+    """
+    root = Path(voc_root)
+    ids_file = root / imagesets_subdir / f"{split_name}.txt"
+    ids = [line.strip() for line in ids_file.read_text().splitlines()
+          if line.strip()]
+    img_dir = root / images_subdir
+    ann_dir = root / annotations_subdir
+    records, missing = [], []
+    for image_id in ids:
+        img_path = next((img_dir / f"{image_id}{ext}" for ext in IMG_EXTS
+                         if (img_dir / f"{image_id}{ext}").exists()), None)
+        xml_path = ann_dir / f"{image_id}.xml"
+        if img_path is None or not xml_path.exists():
+            missing.append(image_id)
+            continue
+        rec = parse_voc_xml(xml_path)
+        rec["image_id"] = image_id
+        rec["image_path"] = str(img_path)
+        records.append(rec)
+    if missing:
+        print(f"[heridal] WARNING: {len(missing)} ids listed in "
+              f"'{split_name}.txt' had no image/annotation pair, skipped "
+              f"(first few: {missing[:5]}) -- likely negative/no-person "
+              "images excluded from this repackaging's annotation set.")
+    return records
