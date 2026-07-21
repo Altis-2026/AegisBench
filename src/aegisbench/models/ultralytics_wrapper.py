@@ -23,7 +23,13 @@ class UltralyticsDetector:
 
     def predict(self, image_rgb: np.ndarray, conf: float = 0.001,
                 imgsz: int = 1024, device: str | int = 0) -> dict:
-        res = self.model.predict(image_rgb, conf=conf, imgsz=imgsz,
+        # ultralytics treats a numpy source as BGR (cv2 convention) and flips
+        # it to RGB internally. Our pipeline carries RGB, and training read
+        # the on-disk JPEGs via cv2 (BGR) -- so we must hand predict() BGR
+        # here for the inference channel order to match training. Passing RGB
+        # would silently swap R/B and degrade accuracy without any error.
+        image_bgr = np.ascontiguousarray(image_rgb[..., ::-1])
+        res = self.model.predict(image_bgr, conf=conf, imgsz=imgsz,
                                  device=device, verbose=False)[0]
         boxes = res.boxes.xyxy.cpu().numpy().astype(np.float32)
         scores = res.boxes.conf.cpu().numpy().astype(np.float32)

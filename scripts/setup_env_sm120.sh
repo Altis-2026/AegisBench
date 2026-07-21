@@ -36,10 +36,16 @@ if ! pip install --pre torch torchvision --index-url "$TORCH_INDEX"; then
   pip install --pre torchvision --index-url "$TORCH_INDEX" --no-deps
 fi
 
-# Everything else from PyPI. ultralytics must NOT drag in its own torch:
-# install with --no-deps and add its remaining deps explicitly.
+# Everything else from PyPI. ultralytics must NOT drag in its own torch
+# (that would clobber the GPU-specific nightly above), so it is installed
+# with --no-deps -- which means EVERY other ultralytics runtime dependency
+# has to be listed here explicitly. Missing any one of them surfaces only
+# at runtime (e.g. ultralytics importing `requests` to fetch pretrained
+# weights), so this list mirrors ultralytics' declared deps minus
+# torch/torchvision: requests, scipy, ultralytics-thop included.
 pip install numpy opencv-python pillow pyyaml matplotlib pandas \
-  pycocotools pytest tqdm psutil "polars" py-cpuinfo
+  pycocotools pytest tqdm psutil "polars" py-cpuinfo \
+  requests scipy ultralytics-thop
 pip install --no-deps ultralytics
 
 pip install -e .
