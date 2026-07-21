@@ -54,7 +54,7 @@ def load_all(image_dir: str | Path,
         if not xml_path.exists():
             missing.append(img_path.name)
             continue
-        rec = parse_voc_xml(xml_path)
+        rec = parse_voc_xml(xml_path, image_path=img_path)
         rec["image_id"] = img_path.stem
         rec["image_path"] = str(img_path)
         records.append(rec)

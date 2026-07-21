@@ -49,6 +49,38 @@ def test_parse_voc_xml(tmp_path):
     assert rec["boxes"][1][2] <= 4000 and rec["boxes"][1][3] <= 3000
 
 
+VOC_NO_SIZE = textwrap.dedent("""\
+    <annotation>
+      <filename>img002.jpg</filename>
+      <object>
+        <name>person</name>
+        <bndbox><xmin>10</xmin><ymin>20</ymin><xmax>50</xmax>
+        <ymax>90</ymax></bndbox>
+      </object>
+    </annotation>
+""")
+
+
+def test_parse_voc_xml_missing_size_falls_back_to_image(tmp_path):
+    """Real HERIDAL annotation files are not all internally consistent --
+    some omit <size> entirely. Width/height must come from the actual
+    image on disk instead of crashing."""
+    xml = tmp_path / "img002.xml"
+    xml.write_text(VOC_NO_SIZE)
+    img = tmp_path / "img002.jpg"
+    Image.new("RGB", (640, 480)).save(img)
+    rec = parse_voc_xml(xml, image_path=img)
+    assert rec["width"] == 640 and rec["height"] == 480
+    assert len(rec["boxes"]) == 1
+
+
+def test_parse_voc_xml_missing_size_no_fallback_raises(tmp_path):
+    xml = tmp_path / "img002.xml"
+    xml.write_text(VOC_NO_SIZE)
+    with pytest.raises(ValueError):
+        parse_voc_xml(xml)
+
+
 def test_group_key_strips_frame_counter():
     assert group_key("video7_frame00123") == "video7_frame"
     assert group_key("seq_03-0456") == "seq_03"

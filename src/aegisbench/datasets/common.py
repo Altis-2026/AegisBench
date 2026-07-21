@@ -19,13 +19,29 @@ PERSON_ALIASES = {"person", "human", "people", "pedestrian"}
 
 
 def parse_voc_xml(xml_path: str | Path,
-                  person_aliases: set[str] = PERSON_ALIASES) -> dict:
+                  person_aliases: set[str] = PERSON_ALIASES,
+                  image_path: str | Path | None = None) -> dict:
     """Parse one PASCAL-VOC annotation file into the canonical record.
-    Objects whose class is not a person alias are ignored (and counted)."""
+    Objects whose class is not a person alias are ignored (and counted).
+
+    Real-world VOC exports are not always internally consistent -- some
+    annotation files omit <size> entirely. When that happens and
+    image_path is given, width/height are read from the actual image
+    instead of raising, since the image on disk is ground truth either
+    way. Without image_path, a missing <size> is a hard error.
+    """
     root = ET.parse(xml_path).getroot()
     size = root.find("size")
-    width = int(float(size.find("width").text))
-    height = int(float(size.find("height").text))
+    if (size is not None and size.find("width") is not None
+            and size.find("height") is not None):
+        width = int(float(size.find("width").text))
+        height = int(float(size.find("height").text))
+    elif image_path is not None:
+        width, height = image_size(image_path)
+    else:
+        raise ValueError(
+            f"{xml_path}: no <size> element and no image_path fallback "
+            "given to recover width/height")
     boxes, ignored = [], 0
     for obj in root.findall("object"):
         cls = (obj.find("name").text or "").strip().lower()

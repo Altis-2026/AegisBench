@@ -52,7 +52,7 @@ def load_split(image_dir: str | Path,
         if not xml_path.exists():
             missing_labels.append(img_path.name)
             continue
-        rec = parse_voc_xml(xml_path)
+        rec = parse_voc_xml(xml_path, image_path=img_path)
         rec["image_id"] = img_path.stem
         rec["image_path"] = str(img_path)
         records.append(rec)
@@ -102,7 +102,7 @@ def load_from_imagesets(voc_root: str | Path, split_name: str,
         if img_path is None or not xml_path.exists():
             missing.append(image_id)
             continue
-        rec = parse_voc_xml(xml_path)
+        rec = parse_voc_xml(xml_path, image_path=img_path)
         rec["image_id"] = image_id
         rec["image_path"] = str(img_path)
         records.append(rec)
