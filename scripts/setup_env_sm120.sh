@@ -45,7 +45,7 @@ fi
 # torch/torchvision: requests, scipy, ultralytics-thop included.
 pip install numpy opencv-python pillow pyyaml matplotlib pandas \
   pycocotools pytest tqdm psutil "polars" py-cpuinfo \
-  requests scipy ultralytics-thop
+  requests scipy ultralytics-thop nvidia-ml-py
 pip install --no-deps ultralytics
 
 pip install -e .
