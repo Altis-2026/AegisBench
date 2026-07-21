@@ -42,7 +42,12 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
 
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
-    run_dir = Path(run_dir)
+    # Must be absolute: a relative `project` path lets ultralytics silently
+    # prepend its own default "runs/<task>/" prefix, so the directory it
+    # actually saves to no longer matches the path this function returns.
+    # Observed live: project="runs/yolo11" saved to
+    # ".../runs/detect/runs/yolo11/..." instead of ".../runs/yolo11/...".
+    run_dir = Path(run_dir).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "train_config_used.yaml").write_text(yaml.safe_dump(cfg))
 
