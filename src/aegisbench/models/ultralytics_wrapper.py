@@ -14,12 +14,22 @@ import numpy as np
 import yaml
 
 
+def _is_rtdetr(weights: str | Path) -> bool:
+    """Detect RT-DETR from the full path, not just the filename stem --
+    trained checkpoints are always named best.pt/last.pt by ultralytics
+    regardless of architecture, so only the run directory name (e.g.
+    '.../rtdetr_heridal_clean/weights/best.pt') carries the 'rtdetr' marker.
+    Checking just the stem would silently misdetect every trained RT-DETR
+    checkpoint as YOLO."""
+    return "rtdetr" in str(weights).lower()
+
+
 class UltralyticsDetector:
     def __init__(self, weights: str | Path):
         from ultralytics import YOLO, RTDETR
 
         w = str(weights)
-        self.model = RTDETR(w) if "rtdetr" in Path(w).stem.lower() else YOLO(w)
+        self.model = RTDETR(w) if _is_rtdetr(w) else YOLO(w)
 
     def predict(self, image_rgb: np.ndarray, conf: float = 0.001,
                 imgsz: int = 1024, device: str | int = 0) -> dict:
@@ -52,7 +62,7 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
     (run_dir / "train_config_used.yaml").write_text(yaml.safe_dump(cfg))
 
     base = cfg["base_weights"]
-    model = RTDETR(base) if "rtdetr" in base.lower() else YOLO(base)
+    model = RTDETR(base) if _is_rtdetr(base) else YOLO(base)
     model.train(
         data=cfg["data_yaml"],
         epochs=cfg["epochs"],
@@ -72,3 +82,18 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
         verbose=True,
     )
     return run_dir / cfg["run_name"] / "weights" / "best.pt"
+
+
+def resume_training(last_weights: str | Path) -> Path:
+    """Resume an interrupted run (e.g. after Ctrl+C, or a killed process)
+    from its last checkpoint. Ultralytics stores the original training
+    args (data, epochs, project, name, ...) alongside the checkpoint, so
+    resume=True picks training back up from the next epoch with no need
+    to restate any config."""
+    from ultralytics import YOLO, RTDETR
+
+    w = str(last_weights)
+    model = RTDETR(w) if _is_rtdetr(w) else YOLO(w)
+    model.train(resume=True)
+    # .../<run_name>/weights/last.pt -> .../<run_name>/weights/best.pt
+    return Path(last_weights).parent / "best.pt"
