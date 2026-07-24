@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from tqdm import tqdm
 
 
 def _lazy_torch():
@@ -108,7 +109,12 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
     for epoch in range(cfg["epochs"]):
         model.train()
         t0, running = time.time(), 0.0
-        for images, targets in loader:
+        # Ultralytics shows a live per-iteration bar; this loop had none,
+        # so a slow first epoch (thousands of iterations, printed only at
+        # epoch end) was indistinguishable from a hang. tqdm fixes that.
+        pbar = tqdm(loader, desc=f"epoch {epoch + 1}/{cfg['epochs']}",
+                   unit="it")
+        for i, (images, targets) in enumerate(pbar, 1):
             images = [im.to(device) for im in images]
             targets = [{k: v.to(device) for k, v in t.items()}
                        for t in targets]
@@ -120,6 +126,7 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
             scaler.step(opt)
             scaler.update()
             running += float(loss.detach())
+            pbar.set_postfix(loss=f"{running / i:.4f}")
         sched.step()
         print(f"[fasterrcnn] epoch {epoch + 1}/{cfg['epochs']} "
               f"loss={running / max(len(loader), 1):.4f} "
