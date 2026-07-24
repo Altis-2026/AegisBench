@@ -56,7 +56,10 @@ class YoloTileDataset:
         target = {"boxes": boxes_t,
                   "labels": torch.ones((len(boxes),), dtype=torch.int64),
                   "image_id": torch.tensor([idx])}
-        img_t = torch.as_tensor(np.asarray(img), dtype=torch.float32
+        # np.array() (not np.asarray()) forces a copy, so the array is
+        # writable -- avoids a UserWarning per image; harmless either way
+        # since nothing here ever writes to it in place.
+        img_t = torch.as_tensor(np.array(img), dtype=torch.float32
                                 ).permute(2, 0, 1) / 255.0
         return img_t, target
 
