@@ -136,7 +136,12 @@ def select_operating_point(gt_records: list[dict], dt_records: list[dict],
                            grid: np.ndarray | None = None) -> float:
     """Confidence threshold maximizing F1 on (clean) validation data."""
     if grid is None:
-        grid = np.round(np.arange(0.05, 0.96, 0.05), 2)
+        # Denser near the top: a two-stage detector's classifier head can
+        # be sharply peaked, and an F1-optimum landing on 0.95 (observed
+        # live for Faster R-CNN) is indistinguishable from the search
+        # simply hitting its own boundary unless we can see past it.
+        grid = np.round(np.concatenate([np.arange(0.05, 0.95, 0.05),
+                                        np.arange(0.95, 0.995, 0.01)]), 3)
     best_t, best_f1 = float(grid[0]), -1.0
     for t in grid:
         f1 = pr_at_threshold(gt_records, dt_records, float(t),
