@@ -1,0 +1,14 @@
+# Faster R-CNN ResNet-50 FPN v2 (torchvision) on clean SARD tiles, the
+# two-stage contrast baseline. run_name keeps this run's weights file
+# (fasterrcnn_sard_clean_best.pt) separate from the HERIDAL run's
+# (fasterrcnn_heridal_clean_best.pt) inside the shared runs/fasterrcnn dir.
+kind: fasterrcnn
+run_name: fasterrcnn_sard_clean
+train_images: data/sard/tiles/train/images
+train_labels: data/sard/tiles/train/labels
+epochs: 26
+batch: 2
+seed: 17
+amp: true
+lr0: 0.005
+workers: 4

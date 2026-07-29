@@ -105,7 +105,10 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
         opt, T_max=cfg["epochs"])
     scaler = torch.amp.GradScaler("cuda", enabled=cfg.get("amp", True))
 
-    best_path = run_dir / "fasterrcnn_best.pt"
+    # Namespaced by run_name (like the ultralytics runs) so a second dataset
+    # (e.g. SARD after HERIDAL) trained into the same --run-dir can't
+    # silently overwrite an earlier best-weights file of the same kind.
+    best_path = run_dir / f"{cfg.get('run_name', 'fasterrcnn')}_best.pt"
     for epoch in range(cfg["epochs"]):
         model.train()
         t0, running = time.time(), 0.0

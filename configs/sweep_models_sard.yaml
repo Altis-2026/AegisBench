@@ -1,0 +1,12 @@
+# Models entering the Phase 5 stress-test sweep on SARD. Fill in the
+# weights paths produced by Phase 4 (train_*_sard.yaml configs) before
+# running. Pair with: --records data/sard/records --dataset sard
+- kind: yolo11
+  weights: runs/yolo11/yolo11_sard_clean/weights/best.pt
+  imgsz: 1024
+- kind: rtdetr
+  weights: runs/rtdetr/rtdetr_sard_clean/weights/best.pt
+  imgsz: 1024
+- kind: fasterrcnn
+  weights: runs/fasterrcnn/fasterrcnn_sard_clean_best.pt
+  imgsz: 1024

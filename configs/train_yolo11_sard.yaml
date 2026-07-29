@@ -1,0 +1,17 @@
+# YOLOv11 fine-tune on clean SARD tiles. Same hardware budget as the
+# HERIDAL run: yolo11m at 1024 px, batch 4, AMP on. SARD frames are
+# 1920x1080, so the same 1024/256 tile/overlap pipeline as HERIDAL still
+# tiles each frame (not a no-op) -- reuse phase2_tile_dataset.py unchanged.
+kind: yolo11
+run_name: yolo11_sard_clean
+base_weights: yolo11m.pt
+data_yaml: data/sard/tiles/dataset.yaml
+epochs: 80
+imgsz: 1024
+batch: 4
+seed: 17
+amp: true
+optimizer: auto
+lr0: 0.01
+patience: 20
+workers: 4
