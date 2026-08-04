@@ -77,39 +77,21 @@ def build_model(num_classes: int = 2):
     return model
 
 
-def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
+def _build_optimizer(model, cfg):
     torch, _ = _lazy_torch()
-    from torch.utils.data import DataLoader
-
-    from ..seeding import seed_everything
-
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
-    run_dir = Path(run_dir)
-    run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / "train_config_used.yaml").write_text(yaml.safe_dump(cfg))
-
-    seed_everything(cfg["seed"])
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    ds = YoloTileDataset(cfg["train_images"], cfg["train_labels"])
-    loader = DataLoader(ds, batch_size=cfg["batch"], shuffle=True,
-                        num_workers=cfg.get("workers", 4),
-                        collate_fn=lambda b: tuple(zip(*b)),
-                        generator=torch.Generator().manual_seed(cfg["seed"]))
-
-    model = build_model().to(device)
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.SGD(params, lr=cfg.get("lr0", 0.005),
                           momentum=0.9, weight_decay=5e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(
         opt, T_max=cfg["epochs"])
     scaler = torch.amp.GradScaler("cuda", enabled=cfg.get("amp", True))
+    return opt, sched, scaler
 
-    # Namespaced by run_name (like the ultralytics runs) so a second dataset
-    # (e.g. SARD after HERIDAL) trained into the same --run-dir can't
-    # silently overwrite an earlier best-weights file of the same kind.
-    best_path = run_dir / f"{cfg.get('run_name', 'fasterrcnn')}_best.pt"
-    for epoch in range(cfg["epochs"]):
+
+def _run_training_loop(model, loader, opt, sched, scaler, device, cfg,
+                       best_path, ckpt_path, start_epoch: int = 0) -> Path:
+    torch, _ = _lazy_torch()
+    for epoch in range(start_epoch, cfg["epochs"]):
         model.train()
         t0, running = time.time(), 0.0
         # Ultralytics shows a live per-iteration bar; this loop had none,
@@ -134,8 +116,91 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
         print(f"[fasterrcnn] epoch {epoch + 1}/{cfg['epochs']} "
               f"loss={running / max(len(loader), 1):.4f} "
               f"({time.time() - t0:.0f}s)")
+        # best_path is a plain state_dict (the inference-time contract
+        # FasterRCNNDetector expects); ckpt_path additionally carries
+        # optimizer/scheduler/scaler/epoch/cfg so a crash mid-run can
+        # resume from the next epoch instead of restarting at 0.
         torch.save(model.state_dict(), best_path)
+        torch.save({"model": model.state_dict(), "optimizer": opt.state_dict(),
+                   "scheduler": sched.state_dict(),
+                   "scaler": scaler.state_dict(), "epoch": epoch,
+                   "cfg": cfg}, ckpt_path)
     return best_path
+
+
+def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
+    torch, _ = _lazy_torch()
+    from torch.utils.data import DataLoader
+
+    from ..seeding import seed_everything
+
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    run_dir = Path(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "train_config_used.yaml").write_text(yaml.safe_dump(cfg))
+
+    seed_everything(cfg["seed"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ds = YoloTileDataset(cfg["train_images"], cfg["train_labels"])
+    loader = DataLoader(ds, batch_size=cfg["batch"], shuffle=True,
+                        num_workers=cfg.get("workers", 4),
+                        collate_fn=lambda b: tuple(zip(*b)),
+                        generator=torch.Generator().manual_seed(cfg["seed"]))
+
+    model = build_model().to(device)
+    opt, sched, scaler = _build_optimizer(model, cfg)
+
+    # Namespaced by run_name (like the ultralytics runs) so a second dataset
+    # (e.g. SARD after HERIDAL) trained into the same --run-dir can't
+    # silently overwrite an earlier best-weights file of the same kind.
+    run_name = cfg.get("run_name", "fasterrcnn")
+    best_path = run_dir / f"{run_name}_best.pt"
+    ckpt_path = run_dir / f"{run_name}_last_ckpt.pt"
+    return _run_training_loop(model, loader, opt, sched, scaler, device,
+                              cfg, best_path, ckpt_path)
+
+
+def resume_training(ckpt_path: str | Path, run_dir: str | Path) -> Path:
+    """Resume an interrupted Faster R-CNN run (crash, Ctrl+C, killed
+    process) from the full checkpoint _run_training_loop writes after
+    every epoch. The checkpoint carries the original cfg, so nothing
+    needs to be restated on the command line -- mirrors ultralytics'
+    resume=True ergonomics for the one detector torchvision doesn't
+    give that to us for free."""
+    torch, _ = _lazy_torch()
+    from torch.utils.data import DataLoader
+
+    from ..seeding import seed_everything
+
+    ckpt_path = Path(ckpt_path)
+    run_dir = Path(run_dir)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ckpt = torch.load(ckpt_path, map_location=device)
+    cfg = ckpt["cfg"]
+    seed_everything(cfg["seed"])
+
+    ds = YoloTileDataset(cfg["train_images"], cfg["train_labels"])
+    loader = DataLoader(ds, batch_size=cfg["batch"], shuffle=True,
+                        num_workers=cfg.get("workers", 4),
+                        collate_fn=lambda b: tuple(zip(*b)),
+                        generator=torch.Generator().manual_seed(cfg["seed"]))
+
+    model = build_model().to(device)
+    opt, sched, scaler = _build_optimizer(model, cfg)
+    model.load_state_dict(ckpt["model"])
+    opt.load_state_dict(ckpt["optimizer"])
+    sched.load_state_dict(ckpt["scheduler"])
+    scaler.load_state_dict(ckpt["scaler"])
+    start_epoch = ckpt["epoch"] + 1
+
+    run_name = cfg.get("run_name", "fasterrcnn")
+    best_path = run_dir / f"{run_name}_best.pt"
+    print(f"[fasterrcnn] resuming {run_name} from epoch "
+          f"{start_epoch}/{cfg['epochs']}")
+    return _run_training_loop(model, loader, opt, sched, scaler, device,
+                              cfg, best_path, ckpt_path,
+                              start_epoch=start_epoch)
 
 
 class FasterRCNNDetector:
