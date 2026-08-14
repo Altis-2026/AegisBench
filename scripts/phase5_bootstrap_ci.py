@@ -12,6 +12,9 @@ Requires phase5_sweep.py to have been run with --pred-dir (predictions
 must be saved to disk -- this script reruns no inference, it only
 resamples already-computed detections).
 
+Resumable: appends one row per (model, corruption, severity) to --out as
+it goes, and skips cells already present there on restart.
+
   python scripts/phase5_bootstrap_ci.py \
       --pred-dir results/sweep/preds --records data/heridal/records/test.json \
       --dataset heridal --sweep-csv results/sweep/master.csv \
@@ -21,6 +24,7 @@ resamples already-computed detections).
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from pathlib import Path
 
@@ -66,6 +70,24 @@ def bootstrap_one(gt_records: list[dict], dt_records: list[dict],
            "f1_mean": f_mean, "f1_ci_lo": f_lo, "f1_ci_hi": f_hi}
 
 
+def existing_cells(csv_path: Path) -> set[tuple]:
+    if not csv_path.exists():
+        return set()
+    with open(csv_path) as f:
+        return {(r["model"], r["corruption"], r["severity"])
+                for r in csv.DictReader(f)}
+
+
+def append_row(csv_path: Path, row: dict) -> None:
+    new = not csv_path.exists()
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(csv_path, "a", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS)
+        if new:
+            w.writeheader()
+        w.writerow({k: row.get(k, "") for k in FIELDS})
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pred-dir", required=True)
@@ -83,13 +105,20 @@ def main() -> int:
     df = pd.read_csv(args.sweep_csv)
     df = df[df["dataset"] == args.dataset]
     pred_dir = Path(args.pred_dir)
+    out_path = Path(args.out)
+    done = existing_cells(out_path)
 
-    rows = []
+    n_written = 0
     for model, mdf in df.groupby("model"):
         conf_thresh = float(mdf["conf_thresh"].iloc[0])
         for _, r in mdf.iterrows():
             corruption, severity, family = (r["corruption"], r["severity"],
                                             r["family"])
+            key = (model, corruption, str(severity))
+            if key in done:
+                print(f"  skip {model} {corruption} s{severity} "
+                     "(already in CSV)")
+                continue
             pred_path = pred_dir / f"{model}_{args.dataset}_{corruption}_s{severity}.json"
             if not pred_path.exists():
                 print(f"  skip {model} {corruption} s{severity} "
@@ -102,16 +131,14 @@ def main() -> int:
             print(f"  {model} {corruption} s{severity}: "
                  f"recall={stats['recall_mean']:.3f} "
                  f"[{stats['recall_ci_lo']:.3f}, {stats['recall_ci_hi']:.3f}]")
-            rows.append({"model": model, "dataset": args.dataset,
+            append_row(out_path, {"model": model, "dataset": args.dataset,
                         "family": family, "corruption": corruption,
                         "severity": severity, "conf_thresh": conf_thresh,
                         "n_images": len(gt), "n_boot": args.n_boot, **stats})
+            n_written += 1
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(rows, columns=FIELDS).to_csv(out_path, index=False)
-    print(f"\nwrote {out_path} ({len(rows)} conditions)")
-    if not rows:
+    print(f"\nwrote {n_written} new rows to {out_path}")
+    if n_written == 0 and not done:
         print("Nothing to do -- rerun phase5_sweep.py with --pred-dir set "
              "first so predictions are actually saved to disk.")
     return 0

@@ -7,6 +7,9 @@ joins the corrupted-condition predictions against that model's CLEAN
 predictions and reports, over survivors detected in BOTH conditions, how
 much the box drifted (see evaluation/localization.py).
 
+Resumable: appends one row per (model, corruption, severity) to --out as
+it goes, and skips cells already present there on restart.
+
   python scripts/phase5_localization.py \
       --records data/heridal/records/test.json --dataset heridal \
       --pred-dir results/sweep/preds --sweep-csv results/sweep/master.csv \
@@ -27,6 +30,24 @@ from aegisbench.evaluation import load_predictions, localization_stability
 FIELDS = ["model", "dataset", "family", "corruption", "severity",
           "conf_thresh", "loc_stability_iou", "loc_center_shift",
           "loc_iou_clean", "loc_iou_corrupt", "loc_iou_drop", "n_common"]
+
+
+def existing_cells(csv_path: Path) -> set[tuple]:
+    if not csv_path.exists():
+        return set()
+    with open(csv_path) as f:
+        return {(r["model"], r["corruption"], r["severity"])
+                for r in csv.DictReader(f)}
+
+
+def append_row(csv_path: Path, row: dict) -> None:
+    new = not csv_path.exists()
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(csv_path, "a", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS)
+        if new:
+            w.writeheader()
+        w.writerow({k: row.get(k, "") for k in FIELDS})
 
 
 def _conf_by_model(sweep_csv: Path, dataset: str) -> dict[str, float]:
@@ -57,10 +78,12 @@ def main() -> int:
     gt = load_records(args.records)
     pred_dir = Path(args.pred_dir)
     conf_by_model = _conf_by_model(Path(args.sweep_csv), args.dataset)
+    out = Path(args.out)
+    done = existing_cells(out)
 
     models = sorted({p.name.split("_")[0] for p in pred_dir.glob("*_clean_*")}
                     or {p.name.split("_")[0] for p in pred_dir.glob("*.json")})
-    rows = []
+    n_written = 0
     for model in models:
         clean_path = pred_dir / f"{model}_{args.dataset}_clean_s0.json"
         if not clean_path.exists():
@@ -71,30 +94,29 @@ def main() -> int:
         conf = conf_by_model.get(model, args.default_conf)
         for corruption in suite.names():
             for sev in SEVERITIES:
+                key = (model, corruption, str(sev))
+                if key in done:
+                    print(f"  skip {model} {corruption} s{sev} "
+                         "(already in CSV)")
+                    continue
                 cpath = (pred_dir /
                          f"{model}_{args.dataset}_{corruption}_s{sev}.json")
                 if not cpath.exists():
                     continue
                 corrupt_dt = load_predictions(cpath)
                 m = localization_stability(gt, clean_dt, corrupt_dt, conf)
-                rows.append({"model": model, "dataset": args.dataset,
-                             "family": suite.family(corruption),
-                             "corruption": corruption, "severity": sev,
-                             "conf_thresh": conf, **m})
                 print(f"{model:12s} {corruption:16s} s{sev} "
                       f"stability_iou={m['loc_stability_iou']:.3f} "
                       f"center_shift={m['loc_center_shift']:.3f} "
                       f"iou_drop={m['loc_iou_drop']:.3f} "
                       f"n={m['n_common']}")
+                append_row(out, {"model": model, "dataset": args.dataset,
+                             "family": suite.family(corruption),
+                             "corruption": corruption, "severity": sev,
+                             "conf_thresh": conf, **m})
+                n_written += 1
 
-    out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS)
-        w.writeheader()
-        for r in rows:
-            w.writerow({k: r.get(k, "") for k in FIELDS})
-    print(f"\nwrote {out}")
+    print(f"\nwrote {n_written} new rows to {out}")
     return 0
 
 
