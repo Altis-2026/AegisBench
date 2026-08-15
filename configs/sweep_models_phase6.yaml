@@ -1,0 +1,15 @@
+# Phase 6 mitigation arms entering the re-sweep. `kind` picks the model
+# wrapper (must be yolo11/rtdetr/fasterrcnn); `name` is the identity
+# label written to the CSV/prediction filenames so both arms don't
+# collide with each other or with the clean yolo11 baseline already in
+# master_ci.csv. Fill in / verify weights paths once phase4_train.py
+# finishes each run.
+# Pair with: --records data/heridal/records --dataset heridal
+- kind: yolo11
+  name: yolo11_aug_all
+  weights: runs/yolo11/yolo11_heridal_aug_all/weights/best.pt
+  imgsz: 1024
+- kind: yolo11
+  name: yolo11_aug_lowlight
+  weights: runs/yolo11/yolo11_heridal_aug_lowlight/weights/best.pt
+  imgsz: 1024

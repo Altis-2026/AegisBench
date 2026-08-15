@@ -96,17 +96,18 @@ def main() -> int:
                                    for s in SEVERITIES]
     for spec in model_specs:
         kind = spec["kind"]
+        name = spec.get("name", kind)
         detector = load_detector(kind, spec["weights"])
         imgsz = spec.get("imgsz", 1024)
 
-        print(f"\n=== {kind}: operating point on clean val ===")
+        print(f"\n=== {name}: operating point on clean val ===")
         val_dt = infer_records(val, detector, tile_size=args.tile,
                                overlap=args.overlap, imgsz=imgsz)
         conf = select_operating_point(val, val_dt)
         print(f"    conf={conf:.2f} (frozen for all conditions)")
 
         for corruption, severity in conditions:
-            key = (kind, args.dataset, corruption, str(severity))
+            key = (name, args.dataset, corruption, str(severity))
             if key in done:
                 print(f"  skip {corruption} s{severity} (already in CSV)")
                 continue
@@ -118,13 +119,13 @@ def main() -> int:
                                overlap=args.overlap, imgsz=imgsz, **kwargs)
             if args.pred_dir:
                 save_predictions(dt, Path(args.pred_dir) /
-                                 f"{kind}_{args.dataset}_{corruption}"
+                                 f"{name}_{args.dataset}_{corruption}"
                                  f"_s{severity}.json")
             metrics = evaluate(test, dt, conf)
             row = {**metrics,
                    "timestamp": datetime.now(timezone.utc).isoformat(),
                    "git_sha": sha, "config_hash": config_hash,
-                   "model": kind, "dataset": args.dataset,
+                   "model": name, "dataset": args.dataset,
                    "family": ("clean" if corruption == "clean"
                               else suite.family(corruption)),
                    "corruption": corruption, "severity": severity,

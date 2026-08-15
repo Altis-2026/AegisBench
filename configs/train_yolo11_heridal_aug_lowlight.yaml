@@ -1,0 +1,18 @@
+# YOLOv11 fine-tune on HERIDAL tiles augmented with only the low_light
+# corruption (Phase 6 mitigation, --strategy worst:low_light) -- targets
+# the sweep's worst finding directly. Same budget as the clean baseline
+# (configs/train_yolo11.yaml) so the comparison isolates the effect of
+# the augmentation, not a training-recipe change.
+kind: yolo11
+run_name: yolo11_heridal_aug_lowlight
+base_weights: yolo11m.pt
+data_yaml: data/heridal/tiles_aug_lowlight/dataset.yaml
+epochs: 80
+imgsz: 1024
+batch: 4
+seed: 17
+amp: true
+optimizer: auto
+lr0: 0.01
+patience: 20
+workers: 4
