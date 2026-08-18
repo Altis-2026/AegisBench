@@ -644,6 +644,39 @@ statistic per family: RMS contrast for haze-like corruptions, mean luminance
 for low light, saturated pixel fraction for glare, red-to-blue ratio for fire
 tint, edge strength for motion blur, occluded fraction for inundation.
 
+**One honest exception, disclose it rather than hide it.** Running
+`phase3_calibrate.py` (18 August) confirmed 8 of 9 corruptions pass
+automatic monotonicity verification. `rain_streaks` did not: measured
+`streak_density` came back 0.1341, 0.0906, 0.1294 across severities 1 to 3,
+not monotonically increasing. The code comment in
+`src/aegisbench/corruptions/calibration.py` already names why: "streak_density
+has no closed-form image statistic; rain severity is audited via
+edge_strength/mean_luminance side effects and visual review." `edge_strength`
+is used as a proxy, and it conflates two effects that move in opposite
+directions as severity rises: more/longer streaks raise measured edge
+strength, while the rain veil's blur (`veil_blur_sigma_per_1000px`, which
+also increases with severity, 0.4 to 0.8 to 1.2) suppresses it. The proxy
+statistic is confounded; the corruption itself is not. `rain_streaks`'
+severity is defined directly by its physical parameters in
+`configs/corruptions.yaml` (streaks per megapixel: 120, 350, 800; length,
+veil blur, and darkening all increasing by construction), and the downstream
+recall results already show the expected monotonic degradation (0.893 to
+0.883 to 0.855 on SARD/YOLOv11), which is independent evidence the applied
+corruption really does intensify with severity even though this one proxy
+statistic does not track it cleanly.
+
+Write one sentence to this effect in the calibration paragraph rather than
+claiming all nine pass automatic verification. Something close to: "Eight of
+nine corruptions are calibrated against a dedicated closed-form image
+statistic with machine-verified monotonicity; `rain_streaks` severity is
+instead defined directly by its physical generation parameters (streak
+density, length, and veil intensity, all increasing by construction) and
+verified by visual audit, since no simple per-pixel statistic cleanly
+isolates streak coverage from the veil blur applied in the same corruption."
+This is a stronger paper for saying so: it shows the verification pipeline
+actually works, since it caught its own proxy's limitation, rather than
+rubber-stamping every corruption.
+
 **Scale invariance.** All pixel-unit parameters (blur kernel length, streak
 length, bloom sigma, ripple amplitude) are specified per 1000 pixels of the
 longer image side and scaled at runtime, so severity 2 means the same thing
