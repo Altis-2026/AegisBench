@@ -2,6 +2,12 @@
 # pool (Phase 6 mitigation, --strategy all). Same budget as the clean
 # baseline (configs/train_yolo11.yaml) so the comparison isolates the
 # effect of the augmentation, not a training-recipe change.
+#
+# amp: false -- two runs hit `torch.AcceleratorError: CUDA error: unknown
+# error` in unrelated code paths (AMP grad-scaler step, then plain anchor
+# tensor allocation) on this machine's nightly-cu128 Blackwell build.
+# Disabled as a stability trial; if it OOMs at batch=4 without AMP's
+# memory savings, drop batch to 2 before touching imgsz.
 kind: yolo11
 run_name: yolo11_heridal_aug_all
 base_weights: yolo11m.pt
@@ -10,7 +16,7 @@ epochs: 80
 imgsz: 1024
 batch: 4
 seed: 17
-amp: true
+amp: false
 optimizer: auto
 lr0: 0.01
 patience: 20
