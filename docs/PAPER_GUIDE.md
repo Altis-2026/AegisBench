@@ -52,12 +52,14 @@ since conference pages do get amended, and note that the abstract or
 registration step happens before the full paper deadline in most CVF
 conferences. Do not let registration be the thing that sinks the submission.
 
-**Practical consequence for how you write.** Twelve days is enough for a
-strong paper because the experiments are effectively done, but it is not
-enough to run a new experimental program. Write the paper around the results
-that exist. If the Phase 6 mitigation study (see section 13) does not finish
-in time, the paper still stands on its own as a benchmark and analysis paper,
-and Section 7.7 explains how to frame it either way.
+**Practical consequence for how you write.** The experiments are done. A
+deliberate scope decision was made on 18 August to **not** run the Phase 6
+mitigation study for this submission: two unexplained GPU crashes during
+early testing made its time cost too uncertain against the deadline, and it
+is a bonus contribution, not a required one, for the Evaluation and Datasets
+track. Write the paper as a complete benchmark and analysis paper around the
+results that already exist (section 5). See section 13 for the exact
+Limitations-section framing to use.
 
 ### Which track to submit to
 
@@ -275,12 +277,7 @@ extensive analysis") read as padding.
    section 5 for why this turned out to be one of the more interesting
    results.
 
-5. **A training-time mitigation study** quantifying how much of the loss
-   disaster-aware augmentation recovers, including a targeted ablation
-   against the single worst corruption. (Conditional on Phase 6 finishing;
-   see section 13.)
-
-6. **A fully reproducible, released pipeline** with per-phase verification
+5. **A fully reproducible, released pipeline** with per-phase verification
    checkpoints, provenance logging on every result row, and resumable
    long-running jobs.
 
@@ -302,7 +299,7 @@ marked `[FILL]` still need to be read out of `results/sweep/master_ci.csv`.
 | Localization stability, HERIDAL | `results/sweep/localization_heridal.csv` | Complete, 81 rows |
 | Localization stability, SARD | `results/sweep/localization_sard.csv` | Complete, 81 rows |
 | Robustness heatmaps | `results/sweep/heatmap_{heridal,sard}_recall.png` | Complete |
-| Mitigation study | Phase 6 | **Not yet run** |
+| Mitigation study | Phase 6 | **Descoped, out of scope for this submission (see section 13)** |
 
 The sweep covers 3 models x (1 clean + 9 corruptions x 3 severities) x 2
 datasets = 168 evaluation passes. Bootstrap CIs use 1000 resamples per
@@ -554,8 +551,10 @@ Draft to adapt:
 > rather than positional drift. We release the benchmark, the corruption
 > engine, and the full evaluation pipeline.
 
-Fill the rain number from the CSV. Adapt the last sentence once you know
-whether the mitigation study lands.
+Fill the rain number from the CSV. The abstract above is already correct as
+written, since no mitigation study is part of this submission (section 13):
+it describes the benchmark, the evaluation, and the localization finding,
+and stops there.
 
 ### 7.3 Introduction
 
@@ -708,15 +707,16 @@ Order matters. Build from summary to mechanism.
    it room.
 5. **The calibration-versus-detection analysis** from section 6, if the mAP
    check shows what it might.
-6. **Localization stability**, with the decoupling insight.
-7. **Mitigation**, if Phase 6 lands.
+6. **Localization stability**, with the decoupling insight. This is the last
+   results subsection for this submission; there is no Phase 6 mitigation
+   subsection to follow it (section 13).
 
-If Phase 6 does not finish in time, do not fake it or hedge vaguely. Add one
-honest sentence to the conclusion: disaster-aware training augmentation is
+Do not fake a mitigation result or hedge vaguely about one. Add one honest
+sentence to the conclusion instead: disaster-aware training augmentation is
 the natural mitigation, and evaluating it is immediate future work. A
 benchmark paper is perfectly complete without a mitigation study. A benchmark
-paper with a rushed, under-trained mitigation study is worse than one
-without.
+paper with a rushed, under-trained mitigation study would have been worse
+than one without, which is exactly why it was descoped rather than rushed.
 
 ### 7.8 Limitations
 
@@ -891,7 +891,12 @@ having.
   often software releases rather than papers, and cite the software with a
   version number if that is the only option.
 
-### Theme 6: robustness mitigation through augmentation (needed for Phase 6)
+### Theme 6: robustness mitigation through augmentation (not needed for this submission)
+
+Phase 6 was descoped (section 13), so this theme is not required for the
+current draft. Left here in case a future version of the paper adds the
+mitigation study back in, since it is the natural extension named as future
+work in the conclusion and limitations.
 
 - Hendrycks et al., **AugMix**, ICLR 2020.
 - Cubuk et al., **AutoAugment**, CVPR 2019, and **RandAugment**, 2020.
@@ -985,8 +990,10 @@ low-light condition. The discussion answer is acceptable; silence is not.
 intervals quantify evaluation-set variance rather than training variance. Do
 not blur those two.
 
-**"The mitigation study is missing or thin."** If Phase 6 does not land, own
-it in one sentence as future work. The benchmark contribution stands alone.
+**"Why is there no mitigation study?"** Own it in one sentence as future
+work, per section 13. The benchmark contribution stands alone, and this
+track's own criteria (stress-testing and auditing tools, not necessarily
+fixes) do not require one.
 
 **"How is this different from Michaelis et al.?"** Have a crisp answer ready,
 since this is the closest prior work. Ours is a different domain (aerial
@@ -1039,7 +1046,8 @@ does not fit, put the summary in the main paper and the full table in
 supplementary. Do not shrink the font below the template minimum; reviewers
 notice and some react badly.
 
-**Table 5, mitigation before and after**, if Phase 6 lands.
+There is no Table 5 (mitigation before/after) in this submission; Phase 6
+was descoped (section 13).
 
 Supplementary material has its own deadline (typically shortly after the
 paper deadline, verify the exact date) and is the right home for the full
@@ -1088,30 +1096,42 @@ than "three detectors were evaluated."
 
 ## 13. What is still outstanding
 
-### Phase 6, the mitigation study
+### Phase 6, the mitigation study: deliberately descoped, decided 18 August
 
-Not yet run. Everything is prepared. The configs exist
+This is not "not yet run" waiting on a future decision. The decision was
+made and training was actively stopped: **Phase 6 is out of scope for this
+submission.** Do not run it, and do not leave the paper hedging about
+whether it might still land.
+
+Why: during early testing, two full training attempts hit unexplained
+`torch.AcceleratorError: CUDA error: unknown error` crashes in unrelated
+code paths on this machine's nightly-cu128 Blackwell build, with no
+confirmed root cause after a real diagnostic pass (WSL driver/library audit
+came up clean). A subsequent fix (disabling AMP) was applied and did get a
+run training stably, but a live per-epoch timing measurement put the
+realistic cost at roughly 1 to 3.5 days for two training arms plus the
+re-sweep, against a 10-day runway on 18 August that also had to cover
+drafting the full paper and verifying a 35-50 reference literature review
+from scratch. Given the track's own criteria reward stress-testing and
+auditing tools rather than requiring a fix to be proposed, and given a
+rushed or crash-interrupted mitigation result would be worse for the paper
+than no mitigation section at all, the call was to protect the guaranteed
+deliverable (a complete, polished, on-time submission) over the optional
+one.
+
+**What this means for the draft:** every section above already assumes this
+outcome; none of the results, table, or figure plans reference Phase 6
+output. The only place it appears is one sentence in Limitations (7.8) and
+Conclusion (7.9) naming disaster-aware augmentation as immediate future
+work, which is the honest and sufficient way to handle it.
+
+The configs and pipeline
 (`configs/train_yolo11_heridal_aug_all.yaml`,
 `configs/train_yolo11_heridal_aug_lowlight.yaml`,
-`configs/sweep_models_phase6.yaml`) and the pipeline is in
-`scripts/phase6_mitigation.py`.
-
-Design: two arms on YOLOv11, chosen because it iterates fastest and is the
-realistic deployment choice. Arm one uses the full corruption pool. Arm two
-targets only `low_light`, the statistically confirmed worst case. Comparing
-broad against targeted augmentation is a real ablation and answers a
-practical question: do you need to anticipate the specific condition, or does
-broad augmentation suffice?
-
-Commands are in `docs/RUNBOOK.md` Phase 6. Validation stays clean by design
-so the operating point selection does not shift with augmentation, which
-preserves the frozen-threshold protocol.
-
-**Timing risk.** This requires two full YOLOv11 training runs plus a 56
-condition re-sweep. Against a 28 August deadline this is the piece most
-likely not to land. Decide early, roughly by 22 August, whether it will
-finish. If not, cut it cleanly and frame it as future work rather than
-submitting a rushed, under-trained result.
+`configs/sweep_models_phase6.yaml`, `scripts/phase6_mitigation.py`) are left
+in the repository, since they are real, working, resumable infrastructure
+useful for a future extended version of this paper, not because they are
+expected to run before 28 August.
 
 ### The mAP calibration check
 
