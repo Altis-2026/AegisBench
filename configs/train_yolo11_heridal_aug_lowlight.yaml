@@ -4,17 +4,19 @@
 # (configs/train_yolo11.yaml) so the comparison isolates the effect of
 # the augmentation, not a training-recipe change.
 #
-# amp: false -- matches the aug_all config; disabled preemptively as a
-# stability trial after two unrelated CUDA crashes on this machine's
-# nightly-cu128 Blackwell build. If it OOMs at batch=4 without AMP's
-# memory savings, drop batch to 2 before touching imgsz.
+# amp: false -- matches the aug_all config; disabled as a stability trial
+# after two unrelated CUDA crashes on this machine's nightly-cu128
+# Blackwell build. batch: 2, not 4 -- without AMP's fp16 memory savings,
+# batch 4 at 1024px exceeded this card's 8GB VRAM and spilled into WSL's
+# slow shared-memory fallback (observed live on the aug_all run: 10.3G
+# reported GPU_mem on an 8151MiB card, ~10x slowdown per step).
 kind: yolo11
 run_name: yolo11_heridal_aug_lowlight
 base_weights: yolo11m.pt
 data_yaml: data/heridal/tiles_aug_lowlight/dataset.yaml
 epochs: 80
 imgsz: 1024
-batch: 4
+batch: 2
 seed: 17
 amp: false
 optimizer: auto
