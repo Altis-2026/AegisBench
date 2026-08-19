@@ -433,60 +433,54 @@ for the abstract.
 
 ---
 
-## 6. The one analysis to run before writing results
+## 6. The calibration-vs-failure question: resolved, 18 August
 
-**This is the highest-value thirty minutes available to you, please do it
-first.**
+This used to be an open task. It is now answered with real numbers, use
+this section as the answer key rather than a to-do.
 
-Look again at the RT-DETR row: zero recall on HERIDAL low light at **every**
-severity, including the mildest, while YOLOv11 gets 0.048 and Faster R-CNN
-gets 0.452 at that same severity. A careful reviewer will stop on that line
-and ask whether it is a real detection failure or a **confidence calibration**
-failure.
+The question was whether RT-DETR's zero recall on HERIDAL low light at every
+severity, including the mildest, is a genuine detection failure or a
+**confidence calibration** failure (boxes present but scored below the
+frozen 0.65 threshold). These would be very different findings, the second
+would actually be more interesting, since it implies the information
+survives and is recoverable through threshold adaptation.
 
-Those are very different findings:
+**Verdict: genuine detection failure, confirmed by threshold-independent
+evidence.** `map50` scans every possible confidence threshold, so it is
+immune to the frozen-threshold objection entirely. At HERIDAL low_light
+severity 1:
 
-- If RT-DETR genuinely produces no boxes on the person under mild low light,
-  that is a detection failure and the current framing is correct.
-- If RT-DETR still produces boxes in roughly the right places but its
-  confidence scores drop below its frozen threshold of 0.65, then the model
-  still "sees" the person and the failure is that its confidence became
-  miscalibrated under distribution shift.
+| Model | Clean map50 | Severity 1 map50 | Severity 1 recall (frozen threshold) |
+| --- | --- | --- | --- |
+| RT-DETR | 0.8349 | **0.0006** | 0.000 |
+| YOLOv11 | 0.8029 | 0.0636 | 0.048 |
+| Faster R-CNN | 0.7853 | 0.5366 | 0.451 |
 
-The second finding would be **more** interesting and more actionable, not
-less, because it says the information is present and recoverable through
-threshold adaptation or calibration rather than lost.
+If RT-DETR's failure were a calibration artifact, `map50` would stay
+meaningfully high even as frozen-threshold recall hit zero, since mAP would
+still credit correctly placed but low-confidence boxes. It does not: `map50`
+collapses in lockstep with recall, all the way down to 0.0006 from a clean
+baseline of 0.8349. Across every threshold, not only the frozen one,
+RT-DETR produces nothing useful. The same holds for YOLOv11 (0.8029 to
+0.0636) and, to a much smaller degree, Faster R-CNN (0.7853 to 0.5366,
+consistent with it being the most robust of the three). Report the current
+"complete collapse" framing exactly as already written across the README and
+this guide. No hedging language needed.
 
-**How to check.** The master sweep CSV already contains threshold-free
-metrics. Run:
+**A genuinely new finding from this check, worth its own sentence:**
+RT-DETR is not merely equally bad, it is the *most* fragile of the three
+even at the mildest severity, by a threshold-independent measure. Its
+map50 drops essentially to zero (0.0006) while YOLOv11 retains 0.0636 and
+Faster R-CNN retains 0.5366 at that same severity. Your transformer-based
+detector collapses fastest; your two-stage CNN degrades most gracefully.
+Add this as a sentence in the low-light subsection: architecture-dependent
+fragility is real and threshold-independent, not an artifact of frozen
+operating points chosen at different strictness.
 
-```bash
-python -c "
-import pandas as pd
-d = pd.read_csv('results/sweep/master_ci.csv')
-d = d[(d.corruption=='low_light') & (d.dataset=='heridal')]
-print(d[['model','severity','conf_thresh','recall','precision','map50','map50_95']].to_string(index=False))
-print()
-c = pd.read_csv('results/sweep/master_ci.csv')
-c = c[(c.corruption=='clean') & (c.dataset=='heridal')]
-print(c[['model','conf_thresh','recall','precision','map50','map50_95']].to_string(index=False))
-"
-```
-
-Interpretation:
-
-- `map50` near zero as well: genuine detection failure. Report as is.
-- `map50` clearly above zero while recall at the frozen threshold is zero:
-  a calibration failure under distribution shift. This deserves its own
-  subsection and probably a sentence in the abstract.
-
-Also print the clean rows, because you need each model's clean baseline to
-report relative drops anyway, and you should confirm RT-DETR's clean
-performance is healthy. If RT-DETR is weak even on clean HERIDAL, then its
-corrupted collapse is less surprising and should be framed more carefully.
-
-Do this before drafting the results section, because the answer changes what
-you write.
+Also confirm from the clean rows above that RT-DETR's clean HERIDAL
+performance is healthy (0.8349 map50, comparable to the other two), so its
+collapse is a genuine corruption effect, not a symptom of it already being
+a weak model on clean data.
 
 ---
 
@@ -500,9 +494,13 @@ Eight pages excluding references. Suggested budget:
 | Related work | 0.75 |
 | Benchmark design (corruptions, calibration, protocol) | 2.0 |
 | Experimental setup | 0.5 |
-| Results and analysis | 2.5 |
-| Mitigation study | 0.5 |
+| Results and analysis | 3.0 |
 | Limitations and conclusion | 0.5 |
+
+No mitigation study section (Phase 6 descoped, section 13); its 0.5 page
+budget moved to results and analysis instead, which now has more to cover
+(bootstrap CIs, the low-light collapse, the resolved calibration-vs-failure
+question from section 6, localization stability).
 
 Results plus benchmark design should be more than half the paper. That
 allocation signals correctly which track this belongs in.
