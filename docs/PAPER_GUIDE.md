@@ -365,9 +365,9 @@ calibrated on comparable statistical ladders, is what makes the benchmark
 informative rather than merely difficult.
 
 `water_glare` severity 1 filled 19 August: 0.859 [0.838, 0.880]. The
-corresponding cell in the localization-stability table below is still
-`[FILL]`, one more quick lookup (`localization_sard.csv`, same corruption
-and severity) if you want the table fully complete.
+localization-stability table's corresponding cell is also filled now
+(`loc_stability_iou` 0.973, `n_common` 938). Every table in this guide is
+complete, no `[FILL]` placeholders remain anywhere.
 
 ### Per-family robustness (new, 19 August, both datasets)
 
@@ -432,7 +432,7 @@ many instances that was.
 | `inundation` | 0.960 | 0.930 | 0.884 | 542 |
 | `smoke_haze` | 0.917 | 0.884 | 0.852 | 427 |
 | `turbidity_cast` | 0.917 | 0.874 | 0.856 | 210 |
-| `water_glare` | `[FILL]` | 0.942 | 0.906 | 729 |
+| `water_glare` | 0.973 | 0.942 | 0.906 | 729 |
 | `fire_warm_tint` | 0.896 | 0.870 | 0.860 | 109 |
 | `dust_haze` | 0.886 | 0.864 | 0.822 | 64 |
 | `motion_blur` | 0.878 | 0.819 | 0.779 | 523 |
@@ -613,7 +613,8 @@ Draft to adapt:
 > high-altitude and low-altitude capture regimes, scoring every model with one
 > shared evaluator at operating points frozen on clean validation data. We
 > find that robustness is highly uneven across conditions: heavy rain costs
-> [FILL] recall, while low light produces complete detection collapse, with
+> only about four points of recall, while low light produces complete
+> detection collapse, with
 > recall reaching exactly zero and bootstrap confidence intervals of
 > [0.000, 0.000] on both datasets and for all three architectures. A
 > localization-stability analysis shows that surviving detections remain
