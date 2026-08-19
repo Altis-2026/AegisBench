@@ -356,7 +356,7 @@ they are in `ci_sard.csv` and belong in the paper table):
 | `smoke_haze` | 0.810 | 0.667 | 0.391 | Substantial |
 | `motion_blur` | 0.792 | 0.613 | 0.477 | Substantial |
 | `inundation` | 0.860 | 0.744 | 0.494 | Moderate |
-| `water_glare` | `[FILL]` | 0.809 | 0.666 | Moderate |
+| `water_glare` | 0.859 | 0.809 | 0.666 | Moderate |
 | `rain_streaks` | 0.893 | 0.883 | **0.855** | Nearly unaffected |
 
 The spread here is the story. At severity 3, rain costs about four points of
@@ -364,8 +364,61 @@ recall while low light costs everything. That range, produced by corruptions
 calibrated on comparable statistical ladders, is what makes the benchmark
 informative rather than merely difficult.
 
-Note `water_glare` severity 1 is marked `[FILL]` only because that line was
-cut off in the console output we captured. It is present in `ci_sard.csv`.
+`water_glare` severity 1 filled 19 August: 0.859 [0.838, 0.880]. The
+corresponding cell in the localization-stability table below is still
+`[FILL]`, one more quick lookup (`localization_sard.csv`, same corruption
+and severity) if you want the table fully complete.
+
+### Per-family robustness (new, 19 August, both datasets)
+
+Mean relative recall drop by disaster family, from
+`src/aegisbench/evaluation/robustness.py`'s `summarize()`. This is the
+cleaner headline table, a reviewer scanning quickly sees "storm is worst,
+flood is mildest" before ever reaching the nine-corruption detail table.
+
+**HERIDAL:**
+
+| Family | Faster R-CNN | RT-DETR | YOLOv11 |
+| --- | --- | --- | --- |
+| Storm | 0.784 | **0.874** | 0.829 |
+| Earthquake | 0.534 | 0.568 | 0.571 |
+| Wildfire | 0.335 | 0.459 | 0.405 |
+| Flood | 0.301 | 0.231 | 0.246 |
+
+**SARD:**
+
+| Family | Faster R-CNN | RT-DETR | YOLOv11 |
+| --- | --- | --- | --- |
+| Earthquake | 0.481 | 0.630 | 0.624 |
+| Storm | 0.401 | 0.440 | 0.413 |
+| Wildfire | 0.327 | 0.451 | 0.445 |
+| Flood | 0.264 | 0.293 | 0.252 |
+
+Storm is the worst family on HERIDAL by a wide margin (dominated by
+`low_light`'s collapse pulling the family mean way up), while on SARD,
+earthquake (`dust_haze`) edges out storm as worst. Flood is the mildest
+family on both datasets for every model, consistent with the per-corruption
+table above where `water_glare` and `inundation` (both flood) sit toward the
+robust end.
+
+### Clean baselines (Table 2 material, both datasets, all three models)
+
+| Model | Dataset | Recall | Precision | mAP@0.5 | mAP@[.5:.95] |
+| --- | --- | --- | --- | --- | --- |
+| Faster R-CNN | HERIDAL | 0.7448 | 0.9029 | 0.7853 | 0.5176 |
+| RT-DETR | HERIDAL | 0.7923 | 0.8812 | 0.8349 | 0.5555 |
+| YOLOv11 | HERIDAL | 0.7685 | 0.8548 | 0.8029 | 0.5096 |
+| Faster R-CNN | SARD | 0.8788 | 0.9669 | 0.8962 | 0.6146 |
+| RT-DETR | SARD | 0.8879 | 0.9721 | 0.9292 | 0.6333 |
+| YOLOv11 | SARD | 0.8906 | 0.9550 | 0.9277 | 0.6010 |
+
+All three models perform meaningfully better on clean SARD than on clean
+HERIDAL (roughly 0.88-0.89 vs. 0.74-0.79 recall), consistent with SARD's
+lower-altitude, larger-relative-object-size capture regime being an easier
+detection task than HERIDAL's tiny, high-altitude targets. This is exactly
+why the paper reports *relative* drop rather than comparing raw corrupted
+numbers across datasets: the datasets have different baseline difficulty,
+so only the relative degradation is comparable.
 
 ### The localization stability result, which is more interesting than expected
 
@@ -467,15 +520,34 @@ consistent with it being the most robust of the three). Report the current
 "complete collapse" framing exactly as already written across the README and
 this guide. No hedging language needed.
 
-**A genuinely new finding from this check, worth its own sentence:**
-RT-DETR is not merely equally bad, it is the *most* fragile of the three
-even at the mildest severity, by a threshold-independent measure. Its
-map50 drops essentially to zero (0.0006) while YOLOv11 retains 0.0636 and
-Faster R-CNN retains 0.5366 at that same severity. Your transformer-based
-detector collapses fastest; your two-stage CNN degrades most gracefully.
-Add this as a sentence in the low-light subsection: architecture-dependent
-fragility is real and threshold-independent, not an artifact of frozen
-operating points chosen at different strictness.
+**A genuinely new finding from this check, stated precisely (correction,
+19 August).** On HERIDAL alone, RT-DETR is the most fragile of the three
+even at the mildest severity, by a threshold-independent measure (map50
+0.8349 clean to 0.0006 at severity 1, versus YOLOv11's 0.0636 and Faster
+R-CNN's 0.5366). Running the same low_light check on SARD's full
+three-model table shows this specific ordering does **not** replicate:
+
+| Model | Frozen threshold | Severity 1 (recall / map50) | Severity 2 (recall / map50) | Severity 3 |
+| --- | --- | --- | --- | --- |
+| Faster R-CNN | 0.96 | 0.419 / 0.546 | 0.077 / 0.142 | 0.000 / 0.000 |
+| RT-DETR | 0.60 | 0.260 / 0.421 | 0.013 / 0.049 | 0.000 / 0.001 |
+| YOLOv11 | 0.30 | 0.184 / 0.247 | 0.007 / 0.018 | 0.000 / 0.000 |
+
+On SARD, RT-DETR actually retains *more* capability than YOLOv11 at
+severity 1 and 2, the reverse of the HERIDAL ordering. Do not carry the
+"RT-DETR is the most fragile architecture" claim forward as a general
+statement, it is HERIDAL-specific and a reviewer with both tables in front
+of them (main paper plus supplementary) would catch the inconsistency.
+
+What *does* replicate cleanly across both datasets, and is safe to state as
+a general finding: **Faster R-CNN is consistently the most robust of the
+three at low light**, on HERIDAL and on SARD, at every severity where any
+model still has nonzero recall. Which of YOLOv11 or RT-DETR is second-most
+fragile is dataset-dependent, state that as a dataset interaction rather
+than an architecture property. This is a more honest finding than the
+original draft of this section claimed, and arguably more interesting:
+robustness ordering among architecturally different detectors is not fixed
+by architecture alone, it depends on the specific imagery distribution too.
 
 Also confirm from the clean rows above that RT-DETR's clean HERIDAL
 performance is healthy (0.8349 map50, comparable to the other two), so its

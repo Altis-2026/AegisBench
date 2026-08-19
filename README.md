@@ -127,18 +127,25 @@ resamples with 95% confidence interval.
 | YOLOv11 | 0.45 | 0.048 [0.027, 0.073] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
 | Faster R-CNN | 0.99 | 0.452 [0.365, 0.540] | 0.110 [0.064, 0.163] | 0.000 [0.000, 0.000] |
 
-**SARD**, YOLOv11 (`n` = 862 test images):
+**SARD** (`n` = 862 test images), point estimates, all three models:
 
-| Severity 1 | Severity 2 | Severity 3 |
-| --- | --- | --- |
-| 0.184 [0.157, 0.212] | 0.007 [0.003, 0.012] | 0.000 [0.000, 0.000] |
+| Model | Frozen threshold | Severity 1 | Severity 2 | Severity 3 |
+| --- | --- | --- | --- | --- |
+| Faster R-CNN | 0.96 | 0.419 | 0.077 | 0.000 |
+| RT-DETR | 0.60 | 0.260 | 0.013 | 0.000 |
+| YOLOv11 | 0.30 | 0.184 [0.157, 0.212] | 0.007 [0.003, 0.012] | 0.000 [0.000, 0.000] |
 
 A `[0.000, 0.000]` interval means every one of the 1000 bootstrap resamples
 produced zero recall: not "usually fails", but fails on every resampling of
-the evaluation data. This replicates across two datasets built from
-different sources (orthophoto imagery vs. drone video) and across three
-architecturally unrelated detector families, which is what makes it a
-property of the task rather than a quirk of one model.
+the evaluation data. Total collapse by severity 3 replicates across both
+datasets and all three architecturally unrelated detectors, which is what
+makes it a property of the task rather than a quirk of one model. The one
+architecture-specific claim that does **not** replicate: RT-DETR is the
+most fragile of the three on HERIDAL even at the mildest severity, but on
+SARD it retains more capability than YOLOv11 at that same severity, the
+ordering flips. What holds on both datasets is that Faster R-CNN is
+consistently the most robust of the three, that is a safe general claim;
+which of the other two is second-most fragile depends on the dataset.
 
 ### The full severity spectrum is not uniform
 
@@ -149,7 +156,7 @@ SARD, YOLOv11, mean bootstrap recall by corruption and severity:
 | `rain_streaks` | 0.893 | 0.883 | **0.855** |
 | `inundation` | 0.860 | 0.744 | 0.494 |
 | `smoke_haze` | 0.810 | 0.667 | 0.391 |
-| `water_glare` | -- | 0.809 | 0.666 |
+| `water_glare` | 0.859 | 0.809 | 0.666 |
 | `motion_blur` | 0.792 | 0.613 | 0.477 |
 | `turbidity_cast` | 0.796 | 0.576 | 0.191 |
 | `dust_haze` | 0.673 | 0.272 | 0.058 |
@@ -160,6 +167,13 @@ At matched severity 3, heavy rain costs about four points of recall while
 low light costs all of it. That spread, produced by corruptions calibrated
 on comparable statistical ladders, is what makes the benchmark diagnostic
 rather than merely difficult.
+
+Aggregated by disaster family (mean relative recall drop, HERIDAL): storm
+is worst for every model (0.78&ndash;0.87, dominated by `low_light`), flood
+is mildest for every model (0.23&ndash;0.30). The same ordering mostly
+holds on SARD, except earthquake (`dust_haze`) edges out storm as the worst
+family there. Full per-model, per-family table:
+[`docs/PAPER_GUIDE.md`](docs/PAPER_GUIDE.md#5-what-we-have-already-measured).
 
 ### Detections that survive stay accurately placed
 
