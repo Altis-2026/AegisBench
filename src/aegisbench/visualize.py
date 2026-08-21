@@ -98,3 +98,98 @@ def robustness_heatmap(df, out_path: str | Path, metric: str = "recall",
     fig.savefig(out_path, dpi=200)
     plt.close(fig)
     return out_path
+
+
+def severity_curve(ci_df, out_path: str | Path, model: str,
+                   dataset: str | None = None,
+                   metric: str = "recall") -> Path:
+    """One line per corruption, metric vs severity (0 = clean), with the
+    bootstrap CI shaded. Reads a phase5_bootstrap_ci.py output CSV."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    df = ci_df[ci_df["model"] == model]
+    if dataset:
+        df = df[df["dataset"] == dataset]
+
+    clean = df[df["corruption"] == "clean"]
+    clean_y = float(clean[f"{metric}_mean"].iloc[0]) if len(clean) else None
+
+    corruptions = sorted(df[df["corruption"] != "clean"]["corruption"].unique())
+    cmap = plt.get_cmap("tab10")
+
+    fig, ax = plt.subplots(figsize=(7.5, 5))
+    for i, corr in enumerate(corruptions):
+        sub = df[df["corruption"] == corr].sort_values("severity")
+        lead_x = [0] if clean_y is not None else []
+        lead_y = [clean_y] if clean_y is not None else []
+        xs = lead_x + sub["severity"].tolist()
+        ys = lead_y + sub[f"{metric}_mean"].tolist()
+        lo = lead_y + sub[f"{metric}_ci_lo"].tolist()
+        hi = lead_y + sub[f"{metric}_ci_hi"].tolist()
+        color = cmap(i % 10)
+        ax.plot(xs, ys, marker="o", markersize=3, label=corr,
+               color=color, linewidth=1.6)
+        ax.fill_between(xs, lo, hi, color=color, alpha=0.15, linewidth=0)
+
+    ax.set_xticks([0, 1, 2, 3])
+    ax.set_xticklabels(["clean", "s1", "s2", "s3"])
+    ax.set_ylim(-0.02, 1.02)
+    ax.set_ylabel(metric.capitalize())
+    suffix = model + (f", {dataset}" if dataset else "")
+    ax.set_title(f"{metric.capitalize()} vs severity ({suffix})")
+    ax.legend(fontsize=7, loc="center left", bbox_to_anchor=(1.0, 0.5),
+             frameon=False)
+    fig.tight_layout()
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def localization_decoupling(loc_df, ci_df, out_path: str | Path, model: str,
+                            dataset: str | None = None) -> Path:
+    """Recall vs. localization stability, one point per (corruption,
+    severity), point size = n_common. Shows the two failure modes are
+    decoupled: recall collapses toward zero while stability stays high."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    loc = loc_df[loc_df["model"] == model]
+    ci = ci_df[(ci_df["model"] == model) & (ci_df["corruption"] != "clean")]
+    if dataset:
+        loc = loc[loc["dataset"] == dataset]
+        ci = ci[ci["dataset"] == dataset]
+
+    merged = loc.merge(ci[["corruption", "severity", "recall_mean"]],
+                       on=["corruption", "severity"], how="inner")
+    merged = merged[merged["loc_stability_iou"].notna()]
+
+    families = sorted(merged["family"].unique())
+    cmap = plt.get_cmap("Set2")
+    fam_color = {f: cmap(i % 8) for i, f in enumerate(families)}
+
+    fig, ax = plt.subplots(figsize=(6.5, 5))
+    for fam in families:
+        sub = merged[merged["family"] == fam]
+        ax.scatter(sub["recall_mean"], sub["loc_stability_iou"],
+                   s=sub["n_common"].clip(lower=15) / 4 + 15,
+                   color=fam_color[fam], label=fam, alpha=0.8,
+                   edgecolors="white", linewidths=0.5)
+
+    ax.set_xlabel("Recall (detection survives)")
+    ax.set_ylabel("Localization stability (IoU, clean vs. corrupted box)")
+    ax.set_xlim(-0.02, 1.02)
+    ax.set_ylim(0.5, 1.02)
+    suffix = model + (f", {dataset}" if dataset else "")
+    ax.set_title(f"Recall collapses; localization does not ({suffix})")
+    ax.legend(fontsize=8, frameon=False, title="Family", title_fontsize=8)
+    fig.tight_layout()
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
