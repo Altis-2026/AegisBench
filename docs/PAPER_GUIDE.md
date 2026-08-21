@@ -912,6 +912,32 @@ correctly attributed papers, not guesses.**
   in Search and Rescue Operations Using Deep CNN Detectors", IEEE Access
   2021. Not independently re-verified this pass, low risk (already had
   strong confidence), but re-check page numbers before camera-ready.
+
+  **Important detail found 21 August, engage with this directly, do not
+  skip it.** This same paper already contains a small corrupted-image
+  supplement of its own, called **SARD-Corr**: synthetic fog, snow, ice,
+  and motion-blur variants added to a subset of SARD images, built by the
+  dataset's own original authors to check robustness. This means the
+  closest possible prior attempt at "corrupt SARD and test robustness"
+  already exists, inside the very paper you already had to cite for the
+  dataset itself. Not citing and differentiating from it would be a real,
+  findable gap, since anyone who knows the SARD paper knows this detail.
+
+  The differentiation is strong and should be stated precisely, not
+  glossed over: SARD-Corr uses 4 generic weather effects with no stated
+  severity ladder, no calibration against a measured image statistic, and
+  (from what is publicly described) is evaluated as a single robustness
+  check rather than a systematic sweep. This paper's 9 corruptions are
+  physically modeled and organized into four disaster families, each at
+  3 severities calibrated against a declared, machine-verified statistic,
+  swept across 3 architecturally distinct detectors, with bootstrap
+  confidence intervals and a second, localization-stability axis SARD-Corr
+  does not have. State the relationship as: "the closest prior robustness
+  check on this exact dataset used a small set of generic weather
+  perturbations with no calibrated severity structure; we extend this to
+  a systematic, physically-grounded, statistically validated benchmark
+  across two datasets and three detector architectures." That sentence
+  belongs in Related Work, Theme 1, right next to the SARD citation.
 - Kundid Vasić and Papić, "Multimodel Deep Learning for Person Detection in
   Aerial Images", Electronics 2020. A frequently cited HERIDAL result.
 - **TinyPerson**, Yu, X., Gong, Y., Jiang, N., Ye, Q., and Han, Z., "Scale
