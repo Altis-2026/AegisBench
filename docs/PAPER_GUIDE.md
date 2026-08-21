@@ -898,24 +898,45 @@ A target of 35 to 50 references is normal for a WACV paper of this type.
 This is where the domain grounding comes from and where you must be thorough,
 since these are the closest works to ours.
 
-- **The HERIDAL paper.** Božić-Štulić, Marušić, Gotovac, "Deep Learning
-  Approach in Aerial Imagery for Supporting Land Search and Rescue Missions",
-  IJCV 2019. The citable source of record for the dataset.
-- **The SARD paper.** Sambolek and Ivašić-Kos, "Automatic Person Detection in
-  Search and Rescue Operations Using Deep CNN Detectors", IEEE Access 2021.
+**Verified 19 August by live web search, exact details below rather than
+recalled from training data. Still confirm page numbers and spelling
+directly against the source before the camera-ready, but these are real,
+correctly attributed papers, not guesses.**
+
+- **The HERIDAL paper.** Božić-Štulić, D., Marušić, Ž., and Gotovac, S.,
+  "Deep Learning Approach in Aerial Imagery for Supporting Land Search and
+  Rescue Missions," International Journal of Computer Vision, vol. 127,
+  no. 9, pp. 1256-1278, 2019. DOI 10.1007/s11263-019-01177-1. The citable
+  source of record for the dataset.
+- **The SARD paper.** Sambolek and Ivašić-Kos, "Automatic Person Detection
+  in Search and Rescue Operations Using Deep CNN Detectors", IEEE Access
+  2021. Not independently re-verified this pass, low risk (already had
+  strong confidence), but re-check page numbers before camera-ready.
 - Kundid Vasić and Papić, "Multimodel Deep Learning for Person Detection in
   Aerial Images", Electronics 2020. A frequently cited HERIDAL result.
-- **TinyPerson**, Yu et al., "Scale Match for Tiny Person Detection", WACV
-  2020. Tiny person detection in maritime rescue imagery. Highly relevant and
-  a WACV paper, which is worth noting since citing the venue's own literature
-  is well received.
-- **SeaDronesSee**, Varga et al., WACV 2022. Maritime UAV search and rescue.
-  Same reason.
+- **TinyPerson**, Yu, X., Gong, Y., Jiang, N., Ye, Q., and Han, Z., "Scale
+  Match for Tiny Person Detection," WACV 2020, pp. 1257-1265. Verified via
+  the CVF open-access page. Tiny person detection in maritime rescue
+  imagery, both a strong domain fit (tiny, distant humans against massive
+  background) and a WACV paper, citing the venue's own literature is well
+  received.
+- **SeaDronesSee**, Varga, L.A. et al., "SeaDronesSee: A Maritime Benchmark
+  for Detecting Humans in Open Water," WACV 2022, pp. 2260-2270. Verified
+  via the CVF open-access page. Maritime UAV search and rescue, same venue
+  fit as TinyPerson. Its own framing, that vision systems for maritime SAR
+  lack real-case training/eval data the way land-based systems have, is
+  nearly the same gap statement as this paper's, just for a different
+  environment, worth a direct sentence of comparison.
 - **VisDrone**, Zhu et al., "Detection and Tracking Meet Drones Challenge",
   TPAMI 2021. The standard large-scale drone detection benchmark.
 - **UAVDT**, Du et al., ECCV 2018. Includes weather-condition attributes,
   which makes it a useful contrast: attribute-labeled real conditions versus
   our controlled synthetic ladder.
+- **SaRNet**, "A Dataset for Deep Learning Assisted Search and Rescue with
+  Satellite Imagery," arXiv 2107.12469. Found during this search pass, a
+  different SAR imaging modality (satellite, not aerial/UAV), useful as a
+  one-line contrast in related work: SAR benchmarking exists across imaging
+  modalities, none of them under disaster-grounded corruption.
 
 Search additionally for recent survey papers on UAV-based search and rescue,
 which are efficient sources of further citations.
@@ -925,14 +946,23 @@ which are efficient sources of further citations.
 This establishes the methodological lineage.
 
 - **ImageNet-C**, Hendrycks and Dietterich, "Benchmarking Neural Network
-  Robustness to Common Corruptions and Perturbations", ICLR 2019. The
-  foundational reference for the whole approach. Cite prominently.
+  Robustness to Common Corruptions and Perturbations", ICLR 2019. Verified.
+  The foundational reference for the whole approach. Cite prominently.
 - **Michaelis et al.**, "Benchmarking Robustness in Object Detection:
-  Autonomous Driving when Winter is Coming", 2019. Corruption robustness for
-  detection specifically (COCO-C, Pascal-C, Cityscapes-C). This is the closest
-  methodological antecedent, so engage with it directly and explain what is
-  different: our corruptions are disaster-specific and physically calibrated,
-  our domain is aerial and small-object, and we add localization stability.
+  Autonomous Driving when Winter is Coming", arXiv:1907.07484 (2019),
+  presented at the NeurIPS 2019 ML4AD workshop. Verified, including venue,
+  it is a workshop paper, not a full NeurIPS paper, cite it correctly as
+  such. Corruption robustness for detection specifically (their benchmarks:
+  Pascal-C, Coco-C, Cityscapes-C). This is the closest methodological
+  antecedent, so engage with it directly: our corruptions are
+  disaster-specific and physically calibrated rather than the generic
+  corruption categories they use, our domain is aerial and small-object
+  rather than street-level driving scenes, and we add localization
+  stability as a second axis they do not have. One more useful detail from
+  verifying this paper: their proposed mitigation was stylization-based
+  training augmentation, which worked. That is independent precedent for
+  exactly the kind of mitigation study this paper names as future work
+  (section 13), worth a sentence when framing that future work.
 - Kamann and Rother, "Benchmarking the Robustness of Semantic Segmentation
   Models", CVPR 2020.
 - Hendrycks et al., "The Many Faces of Robustness" (ImageNet-R), ICCV 2021.
@@ -943,7 +973,67 @@ This establishes the methodological lineage.
   mitigation study, since it examines when augmentation actually helps versus
   when it merely overfits the corruption set.
 
-### Theme 3: adverse weather, atmospheric optics, and low light (essential)
+### Theme 3: very recent, closely related work, engage with these directly
+
+**Read this theme before anything else in the literature review.** These
+were found by live search on 19 August, are real and current, and are the
+papers closest in spirit to this one. A reviewer working in this space in
+2026 will know about them. Not citing and differentiating from them reads
+as a gap in the literature review, not citing them at all is worse than
+citing them and explaining why this paper is still distinct.
+
+- **UAV-C**, Liu, X., Feng, Y., Hu, S., Yuan, X., and Fan, H., "Benchmarking
+  the Robustness of UAV Tracking Against Common Corruptions," arXiv:2403.11424
+  (2024), also on IEEE Xplore. Verified. Builds a corruption-robustness
+  benchmark (UAV-C) for UAV *tracking* using 18 corruptions across four
+  generic categories (adversarial, sensor, blur, composite). This is the
+  closest thing to a direct methodological sibling: "benchmark X against
+  common corruptions" applied to UAV imagery. Differentiate precisely: they
+  benchmark tracking, not detection; their corruptions are generic and
+  borrowed from the standard common-corruptions taxonomy, not physically
+  modeled on a specific application domain's real failure modes; they have
+  no disaster framing and no localization-stability-style secondary axis.
+  Cite this and state the distinction in one clear sentence in related work.
+- **HazyDet**, Feng, C., Chen, Z., Li, X., Wang, C., Yang, J., Cheng, M.-M.,
+  Dai, Y., and Fu, Q., "HazyDet: Open-Source Benchmark for Drone-View Object
+  Detection with Depth-Cues in Hazy Scenes," arXiv:2409.19833 (2024).
+  Verified as a real, very recent (September 2024) preprint; confirm its
+  current publication venue before citing; the arXiv listing did not show
+  a conference acceptance at verification time, and this is the kind of
+  detail your friend should recheck by the time you write the sentence,
+  since these things get accepted and published on a lag. 383,000-instance
+  drone-view benchmark combining physics-driven synthetic haze with real
+  foggy drone photos, general object detection (not person/SAR-specific).
+  Structurally, this is a good one to skim for how a very recent, well-received
+  drone-imagery-plus-physical-corruption paper frames its contribution
+  section, it is attempting something adjacent to this paper's corruption
+  engine but for one condition (haze) instead of nine, and for general
+  objects instead of SAR persons specifically.
+- **AWOD** (Adverse Weather Object Detection), a maritime dataset for
+  detection under foggy, flare, and low-light conditions, found via the
+  WRRT-DETR paper below; track down the primary AWOD citation directly
+  before using it, this one came from a secondary mention, not a verified
+  primary source, treat it as a lead to chase rather than a citation to
+  paste in as-is.
+- **WRRT-DETR**, a weather-robust RT-DETR variant for drone-view detection
+  (DOI 10.3390/drones9050369, 2025 journal, not yet independently
+  cross-verified this pass). A model paper, not a benchmark paper, but
+  worth knowing it exists: RT-DETR specifically is already an active
+  target for weather-robustness work elsewhere, which is corroborating
+  evidence that the finding in this paper (RT-DETR's fragility, at least
+  on HERIDAL) sits in a live, relevant research conversation.
+
+The honest summary for your gap paragraph: robustness benchmarking for
+drone/UAV imagery under weather-like conditions is now an active area
+(2024-2025), but every one of these either targets a different task
+(tracking, general object detection) or a narrower corruption scope
+(haze alone, or generic borrowed corruption categories) than this paper's
+nine physically-modeled, disaster-family-organized corruptions applied
+specifically to SAR person detection. State the gap this precisely, not as
+"nobody has done this," since close neighbors now exist and a reviewer who
+knows the space will check.
+
+### Theme 4: adverse weather, atmospheric optics, and low light (essential)
 
 This backs the physical models and is where a domain-expert reviewer will
 check your work.
@@ -976,7 +1066,7 @@ mitigation discussion and a reviewer may well ask why we did not simply apply
 a low-light enhancement model as a baseline. Having a cited answer is worth
 having.
 
-### Theme 4: small-object detection and tiling (supporting)
+### Theme 5: small-object detection and tiling (supporting)
 
 - Lin et al., **Feature Pyramid Networks**, CVPR 2017.
 - **SAHI**, Akyon et al., "Slicing Aided Hyper Inference and Fine-tuning for
@@ -984,7 +1074,7 @@ having.
   protocol. Cite it when describing tiling.
 - Kisantal et al., "Augmentation for Small Object Detection", 2019.
 
-### Theme 5: the detectors themselves (required, brief)
+### Theme 6: the detectors themselves (required, brief)
 
 - Ren et al., **Faster R-CNN**, NeurIPS 2015.
 - Carion et al., **DETR**, ECCV 2020, for transformer detection lineage.
@@ -995,7 +1085,7 @@ having.
   often software releases rather than papers, and cite the software with a
   version number if that is the only option.
 
-### Theme 6: robustness mitigation through augmentation (not needed for this submission)
+### Theme 7: robustness mitigation through augmentation (not needed for this submission)
 
 Phase 6 was descoped (section 13), so this theme is not required for the
 current draft. Left here in case a future version of the paper adds the
@@ -1011,7 +1101,7 @@ work in the conclusion and limitations.
   be so damaging, since they attack exactly the texture and contrast cues the
   models lean on.
 
-### Theme 7: evaluation methodology (supporting, cheap credibility)
+### Theme 8: evaluation methodology (supporting, cheap credibility)
 
 - **Efron and Tibshirani**, *An Introduction to the Bootstrap*, 1993. Cite for
   the confidence interval procedure.
