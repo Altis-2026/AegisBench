@@ -189,15 +189,14 @@ sequence: a whole sequence goes entirely to one of train, validation, or test.
 degenerate groupings. Mention this explicitly in the paper. Reviewers who
 know this domain look for it.
 
-### The naming issue, please resolve early
+### The naming issue: resolved 21 August
 
-The GitHub repository is named **SentinelBench**, but the Python package,
-README, and all internal documentation call the project **AegisBench**. Pick
-one and make it consistent everywhere before submission. The paper name, the
-package name, and any anonymized artifact link should agree. Also check
-whether the chosen name collides with an existing published benchmark, since
-name collisions are an avoidable embarrassment. Do this on day one, because it
-touches every file.
+The repository was previously named SentinelBench while the package, README,
+and internal docs said AegisBench. The repository has since been renamed, so
+**AegisBench is now the name everywhere** and the paper should use it
+throughout. One residual task: confirm the name does not collide with an
+existing published benchmark before the camera-ready, since name collisions
+are an avoidable embarrassment.
 
 ---
 
@@ -1374,9 +1373,10 @@ result. Do this first.
 
 ### Repository hygiene
 
-- Resolve the SentinelBench versus AegisBench naming inconsistency.
-- Confirm the chosen name does not collide with an existing benchmark.
-- Verify `python -m aegisbench.anonymize --root .` runs clean.
+- Naming resolved 21 August: the repository is now AegisBench everywhere.
+- Confirm the name does not collide with an existing published benchmark.
+- Build and verify the submission package: see `docs/SUBMISSION.md`, which
+  supersedes this checklist for everything submission-related.
 
 ---
 

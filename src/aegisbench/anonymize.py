@@ -32,6 +32,11 @@ URL_ALLOWLIST = (
     "ieee-dataport.org", "fesb.unist.hr", "cocodataset.org",
     "pypi.org", "arxiv.org", "opencv.org", "download.pytorch.org",
     "roboflow.com",
+    # Conference, publisher, and badge domains: public and non-identifying,
+    # so they must not force a --force build (see scripts/make_submission.py).
+    "thecvf.com", "neurips.cc", "openreview.net", "img.shields.io",
+    "doi.org", "link.springer.com", "ieeexplore.ieee.org",
+    "openaccess.thecvf.com", "huggingface.co",
 )
 # TLD must be alphabetic so metric notation like "mAP@0.5" doesn't match.
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
