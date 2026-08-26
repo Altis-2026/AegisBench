@@ -563,3 +563,194 @@ stronger for staying inside it.
 | Missing citations: HERIDAL, SARD, Faster R-CNN, RT-DETR, YOLOv11, Efron and Tibshirani | Bibliography | `DRAFT_REVIEW.md` section 3 |
 
 Everything else in this document is measured and can be used as written.
+
+---
+
+## 7. Follow-ups: three points that need more precision
+
+### 7.1 The literal calibration procedure, not a paraphrase
+
+Read directly from `scripts/phase3_calibrate.py` lines 36 to 58. The
+sampling and the check are both more specific than "20-image sample, by
+mean" suggests.
+
+**Sampling.** `picks` is drawn **once, before the loop over corruptions**:
+
+```python
+rng   = np.random.default_rng(stable_seed("phase3-calib", args.records))
+picks = rng.choice(len(records), size=min(args.n, len(records)),
+                   replace=False)
+for name in suite.names():        # <- picks is already fixed here
+```
+
+Therefore:
+
+- **20 images out of the 101-image HERIDAL test split**, since the run used
+  `--records data/heridal/records/test.json --n 20`.
+- Drawn **without replacement**, so 20 distinct images.
+- **The same 20 images for every one of the nine corruptions and every one
+  of the three severities.** They are not resampled per corruption. This is
+  the right design: holding the image subset fixed means a severity ladder
+  is compared against itself on identical content, and differences between
+  corruptions are not confounded by having looked at different scenes.
+- The draw is **deterministic**, seeded by a stable hash of the string
+  `"phase3-calib"` and the records path, so rerunning selects the same 20
+  images.
+
+**What is checked.** For each `(corruption, severity)` pair the statistic is
+computed on each of the 20 corrupted images and averaged. Monotonicity is
+then asserted on the three resulting means:
+
+```python
+seq  = [means[1], means[2], means[3]]
+mono = all(a < b for a, b in zip(seq, seq[1:]))   # or a > b, per direction
+```
+
+So the guarantee is: **the mean statistic over a fixed 20-image subset moves
+in the declared direction across severities.** It is not a per-image
+guarantee, and the paper must not imply one. Per-image monotonicity is the
+wrong thing to require anyway, since every corruption is stochastic and a
+single image can invert without the ladder being ill-formed.
+
+**Sentence to use in Limitations:**
+
+> Severity calibration is verified on a fixed random subset of 20 images
+> drawn without replacement from the HERIDAL test split, held constant
+> across all nine corruptions and all three severities. For each corruption
+> and severity we measure the declared statistic on every image in that
+> subset and verify that the subset mean moves in the declared direction.
+> This is a guarantee about the mean over that subset, not about every
+> individual image: the corruptions are stochastic, so an individual image
+> can invert without the severity ladder being ill-formed. The same check
+> runs on synthetic imagery in the unit-test suite.
+
+**One improvement worth making, since the data already exists.**
+`phase3_calibrate.py` writes a `std_value` column alongside `mean_value`
+and `n` for every row. Reporting Table 1 as **mean ± std (n = 20)** rather
+than mean alone directly answers the "only 20 images?" question by showing
+the dispersion, and it costs nothing because the numbers are already in
+`results/phase3/calibration.csv`. I do not have those standard deviations
+here: the console output printed only the means, so read the `std_value`
+column from the CSV when building the table.
+
+### 7.2 The dust versus smoke gap, and the harder question behind it
+
+The observation as stated invites a sharper follow-up than the one it
+answers. If RMS contrast is the declared calibration statistic for both
+corruptions, and two corruptions sitting at nearly identical values of it
+(0.0475 and 0.0489 at severity 3) produce a 6.7-fold difference in recall
+(0.391 versus 0.058), a reviewer may reasonably ask whether RMS contrast is
+a good calibration statistic at all.
+
+**The answer, which is worth putting in the paper rather than holding in
+reserve, is that the statistic is not doing the job that question assumes.**
+A calibration statistic here certifies that severity is ordered and
+measurable *within* a single corruption. It is not a cross-corruption
+difficulty normaliser, and the benchmark never claims that two corruptions
+at matched statistic values should cost the same recall.
+
+That distinction is worth one explicit sentence in the calibration
+subsection, because it converts a potential objection into a design
+statement:
+
+> The calibration statistic makes each corruption's severity ladder
+> measurable and falsifiable within that corruption. It is not a
+> cross-corruption difficulty normaliser: two corruptions matched on the
+> same statistic are not expected to be equally damaging, and we make no
+> such claim.
+
+**And the dust versus smoke gap is then a finding rather than an
+embarrassment.** If the calibration statistic did predict detection
+difficulty across corruptions, the benchmark would have little to reveal,
+since measuring contrast would substitute for running the sweep. That two
+corruptions built on the same scattering model, at nearly identical global
+contrast, differ this much in cost is direct evidence that detection
+difficulty in this domain is not reducible to global contrast reduction.
+What separates them is what the taxonomy already distinguishes: airlight
+chromaticity, the spatial granularity of the transmission field, and dust's
+additional near-lens grain. This experiment does not isolate which of those
+carries the effect, and the paper should say so.
+
+**The honest scope note that goes with it.** Because the ladders are
+calibrated within corruptions and not equalised across them, statements
+like "dust is more damaging than smoke" are comparisons of the corruptions
+*as modeled here*, at their respective severity 3, rather than claims about
+matched physical severity in the world. Worth one clause so the comparison
+is not over-read.
+
+### 7.3 Table 1, ready to drop in
+
+These supersede the `[Table 1 here]` placeholder currently in Benchmark
+Design. All values are measured, from `results/phase3/calibration.csv`,
+mean over the fixed 20-image subset described in 7.1.
+
+| Corruption | Family | Optical mechanism | Statistic | s1 | s2 | s3 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `water_glare` | Flood | Specular sun-glint saturating the sensor | saturated fraction ↑ | 0.0116 | 0.0182 | 0.1895 |
+| `turbidity_cast` | Flood | Sediment-laden water: mud chromaticity blend, contrast compression | RMS contrast ↓ | 0.1098 | 0.0701 | 0.0378 |
+| `inundation` | Flood | Semi-transparent standing water, ripple refraction | occluded fraction ↑ | 0.0830 | 0.2235 | 0.3921 |
+| `smoke_haze` | Wildfire | Koschmieder scattering, neutral-gray airlight | RMS contrast ↓ | 0.1170 | 0.0776 | 0.0475 |
+| `fire_warm_tint` | Wildfire | Low-CCT fire illumination, warm airlight haze | red / blue ratio ↑ | 1.6743 | 2.0721 | 2.4516 |
+| `rain_streaks` | Storm | Additive directional streaks over a rain veil | streaks per megapixel ↑ † | 120 | 350 | 800 |
+| `motion_blur` | Storm | Wind-induced platform shake, linear blur | edge strength ↓ | 0.0764 | 0.0572 | 0.0472 |
+| `low_light` | Storm | Photon scaling in linear domain, shot + read noise | mean luminance ↓ | 0.2355 | 0.1533 | 0.1175 |
+| `dust_haze` | Earthquake | Koschmieder scattering, brown mineral airlight, grain | RMS contrast ↓ | 0.1094 | 0.0720 | 0.0489 |
+
+**On the `rain_streaks` row.** The table above reports its *generation
+parameter* (streaks per megapixel, monotonic by construction) rather than a
+measured image statistic, marked with a dagger. This is the honest
+presentation: the declared statistic `streak_density` has no closed-form
+image measure, the substituted `edge_strength` proxy is confounded by the
+veil blur applied in the same corruption, and the measured proxy values
+(0.1341, 0.0906, 0.1294) are not monotonic. Putting a non-monotonic
+sequence into a table headed "calibrated severity" without room to explain
+it invites exactly the wrong reading. Report the parameter in the table,
+mark it, and explain the proxy properly in the calibration subsection and
+in Limitations, where there is space (see 4.4).
+
+If you prefer to report the measured proxy for consistency of column
+meaning, that is defensible too, but then the dagger footnote must state
+the non-monotonicity directly in the caption rather than deferring it.
+
+**Caption:**
+
+> **Table 1.** The nine corruptions, their disaster family, the optical
+> mechanism each models, and the statistic defining its severity ladder.
+> Arrows give the direction the statistic must move as severity increases.
+> Values are means over a fixed random subset of 20 HERIDAL test images,
+> held constant across all corruptions and severities; monotonicity is
+> verified automatically on these means. † `rain_streaks` has no
+> closed-form image statistic isolating streak density, so its ladder is
+> defined by the generation parameter shown and audited visually; see
+> Section [X].
+
+**LaTeX skeleton:**
+
+```latex
+\begin{table*}[t]
+\centering\small
+\begin{tabular}{llllrrr}
+\toprule
+Corruption & Family & Optical mechanism & Statistic & s1 & s2 & s3 \\
+\midrule
+\texttt{water\_glare}    & Flood      & Specular sun-glint saturation          & saturated frac.\ $\uparrow$ & 0.0116 & 0.0182 & 0.1895 \\
+\texttt{turbidity\_cast} & Flood      & Sediment-laden water, contrast loss    & RMS contrast $\downarrow$   & 0.1098 & 0.0701 & 0.0378 \\
+\texttt{inundation}      & Flood      & Semi-transparent standing water        & occluded frac.\ $\uparrow$  & 0.0830 & 0.2235 & 0.3921 \\
+\midrule
+\texttt{smoke\_haze}     & Wildfire   & Koschmieder, neutral-gray airlight     & RMS contrast $\downarrow$   & 0.1170 & 0.0776 & 0.0475 \\
+\texttt{fire\_warm\_tint}& Wildfire   & Low-CCT firelight, warm airlight haze  & red/blue ratio $\uparrow$   & 1.6743 & 2.0721 & 2.4516 \\
+\midrule
+\texttt{rain\_streaks}   & Storm      & Directional streaks over a rain veil   & streaks/MP $\uparrow$~$\dagger$ & 120 & 350 & 800 \\
+\texttt{motion\_blur}    & Storm      & Wind-induced platform shake            & edge strength $\downarrow$  & 0.0764 & 0.0572 & 0.0472 \\
+\texttt{low\_light}      & Storm      & Linear-domain photon scaling, noise    & mean luminance $\downarrow$ & 0.2355 & 0.1533 & 0.1175 \\
+\midrule
+\texttt{dust\_haze}      & Earthquake & Koschmieder, brown mineral airlight    & RMS contrast $\downarrow$   & 0.1094 & 0.0720 & 0.0489 \\
+\bottomrule
+\end{tabular}
+\caption{...}
+\label{tab:taxonomy}
+\end{table*}
+```
+
+Add the standard deviations from the CSV's `std_value` column if you adopt
+the mean ± std presentation recommended in 7.1.
