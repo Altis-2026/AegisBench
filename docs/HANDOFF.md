@@ -50,102 +50,93 @@ an official source, is in `docs/SUBMISSION.md`.
 
 ## 3. Current status
 
-Working draft is a Google Doc, exported to PDF at 30 pages of
-single-column text. That is roughly 2 to 2.5 times the final two-column
-budget, so cutting is required, not optional (see section 6).
+**Updated 26 August**, in a remote session with no access to the working
+Google Doc and no access to `data/` or `results/` (both gitignored, and
+this was a fresh container clone). `paper/aegisbench_body.tex` previously
+contained TODO markers and "ALREADY WRITTEN, paste here" placeholders
+pointing at Google Doc content this session could not retrieve. Rather than
+leave the LaTeX skeleton incomplete, every missing section was written
+directly into the file from the fully-specified content in
+`docs/WRITING_PACK.md` and `docs/PAPER_GUIDE.md`, and `paper/aegisbench.bib`
+was built from scratch (no `.bib` file previously existed in the repo). The
+table below reflects the file as it now stands, not the old Google Doc.
 
 | Section | Status |
 | --- | --- |
-| Abstract | written |
-| Introduction paras 1 to 4 | **not written** |
-| Introduction para 5 (contributions) | written |
-| Related Work 1, aerial and SAR person detection | **not written, highest priority** |
-| Related Work 2, corruption robustness | written |
-| Related Work 3, adverse weather and low light | written, needs the largest cut |
-| Related Work 4, small objects and tiling | written, trim FPN background |
-| Benchmark Design | written, one correction outstanding |
-| Evaluation Protocol | written, one duplicated sentence to delete |
-| Experimental Setup | drafted with bracketed placeholders to fill |
-| Ethical Considerations | written |
-| Results | **not written**, all numbers measured and ready |
-| Limitations | **not written**, full prose drafted in the writing pack |
-| Conclusion | **not written** |
+| Abstract | written, in `aegisbench_body.tex` |
+| Introduction paras 1 to 4 | written |
+| Introduction para 5 (contributions) | written, 4 bullets (reproducibility folded into 1 and 2) |
+| Related Work 1, aerial and SAR person detection | written, includes the SARD-Corr differentiation |
+| Related Work 2, corruption robustness | written, pre-cut to budget |
+| Related Work 3, adverse weather and low light | written, pre-cut to budget |
+| Related Work 4, small objects and tiling | written, pre-cut to budget (FPN background omitted) |
+| Benchmark Design | written, Koschmieder correction applied |
+| Evaluation Protocol | written, no duplicated sentence |
+| Experimental Setup | written; **2 TODOs remain**, HERIDAL and SARD train/val image counts |
+| Ethical Considerations | written, own section |
+| Results | written, all 5 subsections |
+| Limitations | written |
+| Conclusion | written |
 | Tables 1 to 7 | **all values measured**, LaTeX ready in `paper/aegisbench_body.tex` |
-| Figures 1 to 5 | code written and tested; run the generators |
-| Bibliography | 19 entries verified, **6 mandatory citations missing** |
+| Figures 1 to 5 | code written and tested; **still need to be run**, requires local `data/`/`results/` |
+| Bibliography | `paper/aegisbench.bib` built, 25 entries, all 6 previously-mandatory ones added; a few entries flagged inline for pre-camera-ready verification (see section 4.4) |
 
-## 4. Defects to fix in the existing draft
+**What this means practically:** the text of the paper is now complete
+end to end except two numeric TODOs that require the prepared dataset
+records (see section 10). The remaining work is mechanical: fill those two
+numbers, spot-check the flagged citations, generate the figures somewhere
+`data/` exists, and move into the official template.
 
-Ordered by severity. The first is a factual error about the paper's own
-method and must be fixed.
+## 4. Defects: status as of the 26 August rewrite
 
-### 4.1 The Koschmieder attribution is wrong (still present)
+Everything in this section described defects in the old Google Doc draft.
+Since the LaTeX body was rewritten from source material rather than pasted
+from that doc, each item below is either resolved by construction or
+still needs a human check. Kept for the record and so nobody re-opens a
+closed item.
 
-Benchmark Design, Physical Models currently says the three corruptions
-built on the Koschmieder scattering model are `smoke_haze`, `dust_haze`,
-and `turbidity_cast`.
+### 4.1 The Koschmieder attribution — resolved
 
-Verified against the source: only `corruptions/wildfire.py` and
-`corruptions/dust.py` call `koschmieder()`. The three are **`smoke_haze`,
-`fire_warm_tint`, and `dust_haze`**. `turbidity_cast` lives in
-`corruptions/flood.py`, which never imports it; it is an alpha blend
-toward a mud chromaticity followed by contrast compression, with no
-transmission map and no airlight term.
+`aegisbench_body.tex` now attributes the Koschmieder model correctly to
+`smoke_haze`, `fire_warm_tint`, and `dust_haze` only; `turbidity_cast` is
+described as a mud-chromaticity blend with contrast compression, no
+transmission map, no airlight term.
 
-Corrected replacement text is in `docs/DRAFT_REVIEW.md` section 1.1. The
-fix strengthens the section: it shows the taxonomy distinguishes genuinely
-different optical processes instead of applying one model everywhere.
+### 4.2 Duplicated sentence — not applicable
 
-### 4.2 Duplicated sentence
+The Evaluation Protocol section was written fresh; the tiling paragraph
+appears once.
 
-In Evaluation Protocol, Tiling and Full-Image Evaluation, the sentence
-beginning "Applying one uniform inference pipeline across both capture
-regimes removes tiling itself as a confound" appears **twice**
-consecutively. Delete one.
+### 4.3 `rain_streaks` statistic wording — resolved
 
-### 4.3 `rain_streaks` statistic wording
+The Calibration and Severity subsection now reads "its declared statistic,
+streak density, has no closed-form image measure, so edge strength is
+substituted as a proxy," matching Table 1's "streaks/MP" row.
 
-The text says "Its calibration statistic, edge strength, is intended as a
-proxy for streak density." The declared statistic in
-`configs/corruptions.yaml` is `streak_density`, and `edge_strength` is
-the substituted implementation because streak density has no closed-form
-image measure. Table 1 will list "streaks/MP", so the prose should match:
-"Its declared statistic, streak density, has no closed-form image
-measure, so edge strength is substituted as a proxy."
+### 4.4 Six mandatory citations — resolved, but spot-check before camera-ready
 
-### 4.4 Six mandatory citations missing
+`paper/aegisbench.bib` now exists (it did not before) with 25 entries,
+including all 6 previously-missing mandatory ones (HERIDAL, SARD, Faster
+R-CNN, RT-DETR, YOLOv11, Efron and Tibshirani) plus SeaDronesSee and
+TIDE/Hoiem et al. for the localization-stability framing. Two entries are
+flagged inline in the `.bib` file with `% VERIFY` comments and were **not**
+independently re-confirmed against the primary source in this pass (no
+live web access from that environment): the Sambolek and Ivašić-Kos (SARD)
+volume/page numbers, and the exact title of the WRRT-DETR paper (only its
+DOI and journal were previously confirmed). Check both before submitting.
 
-The bibliography has 19 verified entries but is missing the papers the
-work cannot ship without:
+### 4.5 Working artifacts to strip — not applicable
 
-- **HERIDAL**: Božić-Štulić, Marušić, Gotovac, IJCV 127(9):1256-1278, 2019
-- **SARD**: Sambolek and Ivašić-Kos, IEEE Access, 2021
-- **Faster R-CNN**: Ren, He, Girshick, Sun, NeurIPS 2015
-- **RT-DETR**: Zhao et al., CVPR 2024
-- **YOLOv11**: cite the Ultralytics release with a version number
-- **Efron and Tibshirani**, *An Introduction to the Bootstrap*, 1993
+The rewritten file has no such headings; nothing to strip.
 
-Strongly recommended additions: SeaDronesSee (Varga et al., WACV 2022),
-and Hoiem et al. ECCV 2012 or TIDE (Bolya et al., ECCV 2020) to place the
-localization-stability axis in an established failure-decomposition
-tradition.
+### 4.6 The WRRT-DETR/AWOD claim — resolved conservatively
 
-### 4.5 Working artifacts to strip
-
-The draft carries headings that must not ship: "Claude Bib File",
-"Related Work, subsection 3:" style working labels, "Tab 3", a duplicated
-title block at the end, and a bare WACV URL. Replace with real section
-headings.
-
-### 4.6 One claim in Related Work to verify
-
-The draft says WRRT-DETR built AWOD "around synthetic fog, flare, and low
-light." Published descriptions say roughly 20,000 images *captured under*
-those conditions, which reads as real imagery. The bibliography entry
-itself is correct. Open the paper and confirm before keeping the word
-"synthetic"; if AWOD is real capture, the paragraph's closing argument
-does not apply to that work in the way the draft claims. See
-`docs/DRAFT_REVIEW.md` section 2.
+The new Related Work 2 describes AWOD as "a maritime dataset of imagery
+captured under fog, flare, and low-light conditions," using the
+review's own finding (published descriptions favor real capture) rather
+than asserting "synthetic." This sidesteps the unverified claim rather
+than resolving it outright; if you do open the WRRT-DETR paper and confirm
+one way or the other, the sentence can be sharpened.
 
 ## 5. Target structure and page budget
 
@@ -163,19 +154,21 @@ track.
 | Results and analysis | 3.0 |
 | Limitations and Conclusion | 0.5 |
 
-## 6. The cutting problem
+## 6. The cutting problem — pre-empted, verify instead of cutting
 
-This is the largest structural risk. Related Work subsections 2 to 4 run
-roughly 1,800 words. At about 950 words per two-column page that is
-around 1.9 pages, and subsection 1 is not yet written. The budget is
-0.75 pages total. Benchmark Design is also running roughly 0.6 pages
-long.
+This used to be the largest structural risk: the old Google Doc's Related
+Work ran roughly 1.9 pages against a 0.75-page budget. The 26 August
+rewrite wrote all four Related Work subsections directly to the cut
+targets below rather than writing long and cutting afterward (roughly 200
+/ 180 / 150 / 100 words for subsections 1 through 4). This has **not**
+been checked against an actual page count in the WACV two-column template,
+since no template or LaTeX install was available in that session. Treat
+the estimate as pre-empted, not verified: once the paper is in the real
+template (section 10), measure the actual Related Work length and confirm
+it lands near 0.75 pages before assuming this risk is closed.
 
-Combined, roughly two pages of overrun in an eight-page paper whose
-three-page Results section does not exist yet. The arithmetic does not
-close without cutting.
-
-Priority order for cuts, from `docs/DRAFT_REVIEW.md` section 5:
+The original cut priorities are kept below in case the rewritten text
+still runs long and needs further trimming:
 
 1. **Related Work 3** is longest and most reducible. The restoration
    literature supports the physical models but is not competed with.
@@ -209,11 +202,19 @@ All tables are written with real measured values in
 
 | # | Content | Width | Status |
 | --- | --- | --- | --- |
-| Fig. 1 | Qualitative failure pair, page-1 teaser | column | generated, needs visual review |
 | Fig. 2 | Corruption taxonomy panel | full | run the generator |
 | Fig. 3 | Severity curves with CI bands | full | run the generator |
 | Fig. 4 | Relative-drop heatmap | full | run the generator |
 | Fig. 5 | Localization decoupling scatter | column | run the generator |
+
+Note: `aegisbench_body.tex` currently places the qualitative clean/`low_light`
+pair (`figures/gallery_lowlight.pdf`) inside the Results, Localization
+Stability subsection rather than as a standalone page-1 teaser figure.
+`docs/FIGURES.md` describes that pairing as a page-1 Figure 1; moving it
+there (and renumbering Figures 2 to 5 accordingly) is a layout decision
+nobody has made yet in the LaTeX, left alone in the 26 August rewrite to
+avoid restructuring figure placement without being asked. Decide this
+before the template pass.
 
 Generation commands and draft captions: `docs/FIGURES.md`. Figures are
 produced at exact CVF column or text width and must be placed at scale 1;
@@ -257,24 +258,36 @@ These are constraints on the prose, checked against the data.
 | Corruption physics and calibration methodology | `docs/CORRUPTIONS.md` |
 | Dataset sourcing, layouts, split policy | `docs/DATA.md` |
 
-For a fresh session, the minimum useful set is this file plus
-`docs/WRITING_PACK.md` and `paper/aegisbench_body.tex`.
+`paper/aegisbench.bib` is new as of 26 August; the "where everything
+lives" table above didn't previously have a row for it because it didn't
+exist. For a fresh session, the minimum useful set is this file plus
+`paper/aegisbench_body.tex` and `paper/aegisbench.bib` — the prose in the
+`.tex` file is now self-contained and does not require re-reading
+`docs/WRITING_PACK.md` unless you're auditing a specific number back to
+its source.
 
 ## 10. Immediate next actions
 
-1. Apply the four corrections in section 4 to the working draft.
-2. Write Related Work subsection 1, including the SARD-Corr
-   differentiation. Text in `docs/WRITING_PACK.md` section 3.
-3. Add the six missing citations.
-4. Write Results from `docs/WRITING_PACK.md` section 2. All numbers are
-   measured; none need computing.
-5. Write Limitations and Conclusion from the same pack, sections 4 and 5.
-6. Write Introduction paragraphs 1 to 4.
-7. Cut Related Work by roughly 40 percent.
-8. Run the figure generators and visually review the gallery images.
-9. Move into the official WACV template and check the page count.
-10. Run `python -m aegisbench.anonymize --root .`, then
+All prose is written (section 3). What is left is data-dependent work
+that requires the actual HERIDAL/SARD dataset and prior sweep outputs
+under `data/` and `results/` — **run these on a machine that has them**,
+not in an environment that only has the git-tracked repo:
+
+1. Measure HERIDAL and SARD train/validation image counts from your
+   prepared records and fill the two remaining `\TODO{n}` markers in
+   Experimental Setup.
+2. Spot-check the two `% VERIFY`-flagged entries in `paper/aegisbench.bib`
+   (Sambolek and Ivašić-Kos page numbers; the WRRT-DETR title) against the
+   primary sources.
+3. Decide the Figure 1 placement question in section 7 above.
+4. Run the figure generators (`docs/FIGURES.md`) and visually review the
+   gallery images and the taxonomy panel crop.
+5. Move into the official WACV template, paste in `aegisbench_body.tex`
+   and `aegisbench.bib`, compile, and check the actual page count against
+   the section 5 budget — confirm the Related Work pre-cut in section 6
+   actually landed near 0.75 pages.
+6. Run `python -m aegisbench.anonymize --root .`, then
     `python scripts/make_submission.py --out dist/`.
 
-Steps 1 through 7 are prose. Step 8 takes minutes. Nothing on this list
-requires further experiments.
+Nothing on this list requires further experiments or further writing;
+every remaining step is measurement, verification, or packaging.
