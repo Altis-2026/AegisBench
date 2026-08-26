@@ -144,7 +144,10 @@ document.
 - Detections are merged back to full-image coordinates with class-agnostic
   NMS, so evaluation is always against the original full-image ground truth
   and stays comparable to published full-image results.
-- SARD frames are not tiled; they fit in memory at 1024 px inference.
+- Both datasets use the same tiling pipeline (1024 px tiles, 256 px
+  overlap): 20 tiles per HERIDAL frame, 6 per SARD frame. One inference
+  protocol across both removes it as a confound when comparing
+  degradation across capture regimes.
 
 **Is the raw data available?**
 Yes, from the original distributors. AegisBench modifies nothing about the

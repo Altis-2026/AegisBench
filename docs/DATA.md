@@ -54,7 +54,11 @@ data/sard/
   the actual filenames in your copy and adjust `--group-regex` if needed.
   This is the difference between a defensible benchmark and silently
   inflated numbers.
-* SARD frames are not tiled (they fit GPU memory at 1024 px inference).
+* SARD frames go through the same tiling pipeline as HERIDAL. At
+  tile 1024 / overlap 256 a 1920x1080 frame yields 6 tiles (a 4000x3000
+  HERIDAL frame yields 20). Detections merge back to full-image
+  coordinates either way, so evaluation is always against the original
+  full-image ground truth.
 
 ## Published reference point
 

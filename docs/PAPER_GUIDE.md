@@ -178,8 +178,10 @@ so the images are cut into overlapping 1024-pixel tiles with 256 pixels of
 overlap. Detections are produced per tile, mapped back to full-image
 coordinates, and merged with class-agnostic non-maximum suppression, so
 evaluation is always against the original full-image ground truth and stays
-comparable to published full-image results. SARD frames are not tiled, since
-they fit in memory at 1024 pixels. See `src/aegisbench/tiling.py`.
+comparable to published full-image results. The same pipeline runs on both
+datasets: `infer_records` tiles unconditionally, giving 20 tiles per
+4000x3000 HERIDAL frame and 6 per 1920x1080 SARD frame. See
+`src/aegisbench/tiling.py`.
 
 **Group-aware splitting.** SARD frames come from video, so consecutive frames
 are near-duplicates. If you split randomly, near-identical frames land in both
