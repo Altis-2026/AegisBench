@@ -1,0 +1,372 @@
+% =====================================================================
+% AegisBench, WACV 2027 Evaluations and Datasets track
+% BODY ONLY. Use the official WACV 2027 author kit for the preamble,
+% \documentclass, and the wacv.sty it ships. Do not substitute a
+% hand-written preamble: a paper not using the template is rejected
+% without review.
+%
+% Every number in the tables below is measured and traceable to a file
+% in results/. Do not edit a number here without changing its source.
+% \TODO markers show what is still to be written.
+% =====================================================================
+
+\newcommand{\TODO}[1]{\textcolor{red}{[TODO: #1]}}
+
+% ---------------------------------------------------------------------
+\section{Introduction}
+% ---------------------------------------------------------------------
+\TODO{Paragraph 1, stakes. Aerial SAR, why automated detection matters,
+why failure is costly. Two sentences of context then technical framing.}
+
+\TODO{Paragraph 2, the gap. Published results on HERIDAL and SARD are
+strong; both were collected in calm clear conditions; deployments are
+not. State plainly that no systematic measurement exists of behaviour
+under the visual conditions of the disasters these systems respond to.
+This is the sentence the paper hangs on.}
+
+\TODO{Paragraph 3, the approach. Three things that make this more than
+an ImageNet-C transplant: corruptions modeled on documented disaster
+optics, severities calibrated against measurable statistics, frozen
+clean-validation operating points.}
+
+\TODO{Paragraph 4, the findings. Lead with the low-light collapse and
+its interval. Then the spread across conditions. Then the localization
+decoupling. One sentence each.}
+
+% Paragraph 5, contributions: ALREADY WRITTEN. Paste here.
+
+% ---------------------------------------------------------------------
+\section{Related Work}
+% ---------------------------------------------------------------------
+
+\subsection{Aerial and Search-and-Rescue Person Detection}
+\TODO{NOT WRITTEN. Highest priority prose remaining. Must cite HERIDAL
+and SARD (the datasets you evaluate on), plus TinyPerson and
+SeaDronesSee, both WACV papers in adjacent SAR domains. Must contain the
+SARD-Corr differentiation paragraph: see docs/WRITING_PACK.md section 3
+for text. Ends by establishing that all of this is evaluated under clear
+conditions.}
+
+\subsection{Corruption Robustness Benchmarking}
+% ALREADY WRITTEN. Paste here.
+
+\subsection{Adverse Weather and Low-Light Vision}
+% ALREADY WRITTEN. Paste here. Candidate for the largest cut, see
+% docs/DRAFT_REVIEW.md section 5.
+
+\subsection{Small-Object Detection and Tiling}
+% ALREADY WRITTEN. Paste here. Trim the FPN background paragraph.
+
+% ---------------------------------------------------------------------
+\section{Benchmark Design}
+% ---------------------------------------------------------------------
+% ALREADY WRITTEN: taxonomy, physical models, calibration, determinism,
+% ground-truth alignment. Paste here, WITH the Koschmieder correction
+% from docs/DRAFT_REVIEW.md section 1.1 applied.
+
+\begin{table*}[t]
+\centering\small
+\caption{The nine corruptions, their disaster family, the optical
+mechanism each models, and the statistic defining its severity ladder.
+Arrows give the direction the statistic must move as severity increases.
+Values are means over a fixed random subsample of 20 HERIDAL test
+images, held constant across all corruptions and severities;
+monotonicity is verified automatically on these means.
+$\dagger$~\texttt{rain\_streaks} has no closed-form image statistic
+isolating streak density, so this row reports the constructed generation
+parameter rather than a measured image statistic; see
+Section~\ref{sec:calibration}.}
+\label{tab:taxonomy}
+\begin{tabular}{llllrrr}
+\toprule
+Corruption & Family & Optical mechanism & Statistic & s1 & s2 & s3 \\
+\midrule
+\texttt{water\_glare}     & Flood      & Specular sun-glint saturation         & saturated frac.\ $\uparrow$      & 0.0116 & 0.0182 & 0.1895 \\
+\texttt{turbidity\_cast}  & Flood      & Sediment-laden water, contrast loss   & RMS contrast $\downarrow$        & 0.1098 & 0.0701 & 0.0378 \\
+\texttt{inundation}       & Flood      & Semi-transparent standing water       & occluded frac.\ $\uparrow$       & 0.0830 & 0.2235 & 0.3921 \\
+\midrule
+\texttt{smoke\_haze}      & Wildfire   & Koschmieder, neutral-gray airlight    & RMS contrast $\downarrow$        & 0.1170 & 0.0776 & 0.0475 \\
+\texttt{fire\_warm\_tint} & Wildfire   & Low-CCT firelight, warm airlight haze & red/blue ratio $\uparrow$        & 1.6743 & 2.0721 & 2.4516 \\
+\midrule
+\texttt{rain\_streaks}    & Storm      & Directional streaks over a rain veil  & streaks/MP $\uparrow$~$\dagger$  & 120    & 350    & 800    \\
+\texttt{motion\_blur}     & Storm      & Wind-induced platform shake           & edge strength $\downarrow$       & 0.0764 & 0.0572 & 0.0472 \\
+\texttt{low\_light}       & Storm      & Linear-domain photon scaling, noise   & mean luminance $\downarrow$      & 0.2355 & 0.1533 & 0.1175 \\
+\midrule
+\texttt{dust\_haze}       & Earthquake & Koschmieder, brown mineral airlight   & RMS contrast $\downarrow$        & 0.1094 & 0.0720 & 0.0489 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/taxonomy_s3.pdf}
+\caption{The nine corruptions at severity 3 on a cropped HERIDAL frame.
+Each models a documented optical signature of a disaster environment
+rather than a generic distortion. Severity is calibrated per corruption
+against a declared image statistic (Table~\ref{tab:taxonomy}).}
+\label{fig:taxonomy}
+\end{figure*}
+
+\subsection{Calibration and Severity}
+\label{sec:calibration}
+% ALREADY WRITTEN and already corrected for the sampling procedure.
+
+% ---------------------------------------------------------------------
+\section{Evaluation Protocol}
+% ---------------------------------------------------------------------
+% ALREADY WRITTEN: frozen operating points, shared evaluator, tiling,
+% bootstrap, provenance. Paste here. NOTE: delete the duplicated
+% sentence in the tiling subsection (the "removes tiling itself as a
+% confound" sentence appears twice).
+
+% ---------------------------------------------------------------------
+\section{Experimental Setup}
+% ---------------------------------------------------------------------
+% ALREADY DRAFTED with bracketed placeholders. Fill them from the tables
+% below and from docs/WRITING_PACK.md section 1.
+
+\begin{table}[t]
+\centering\small
+\caption{Training configuration. Hyperparameters follow established
+per-architecture fine-tuning practice rather than a shared schedule.
+Corrupted data enters neither training nor threshold selection.}
+\label{tab:training}
+\begin{tabular}{lccc}
+\toprule
+ & YOLOv11 & RT-DETR & Faster R-CNN \\
+\midrule
+Base weights   & \texttt{yolo11m} & \texttt{rtdetr-l} & torchvision \\
+Epochs         & 80     & 80      & 26     \\
+Batch size     & 4      & 2       & 2      \\
+Input size     & 1024   & 1024    & 1024   \\
+Initial LR     & 0.01   & 0.0001  & 0.005  \\
+Patience       & 20     & 20      & ---    \\
+Seed           & 17     & 17      & 17     \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Frozen operating points, selected once per model per dataset by
+maximizing F1 on clean validation data and held fixed across all 28
+conditions for that model.}
+\label{tab:thresholds}
+\begin{tabular}{lcc}
+\toprule
+Model & HERIDAL & SARD \\
+\midrule
+Faster R-CNN & 0.99 & 0.96 \\
+RT-DETR      & 0.65 & 0.60 \\
+YOLOv11      & 0.45 & 0.30 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------
+\section{Results}
+% ---------------------------------------------------------------------
+% NOT WRITTEN. All numbers below are measured. Prose guidance for each
+% subsection is in docs/WRITING_PACK.md section 2.
+
+\subsection{Clean Baselines}
+\TODO{Prose. Establishes the pipeline is sound before any robustness
+claim. Compare against the published HERIDAL reference point and note
+that modest deltas across architectures are expected. Note SARD is the
+easier task, which is why everything downstream is reported as relative
+drop.}
+
+\begin{table}[t]
+\centering\small
+\caption{Clean-condition performance. All degradation results are
+reported relative to these baselines, since the two datasets do not
+share a difficulty floor.}
+\label{tab:clean}
+\begin{tabular}{llcccc}
+\toprule
+Model & Dataset & R & P & mAP$_{50}$ & mAP$_{50:95}$ \\
+\midrule
+Faster R-CNN & HERIDAL & 0.745 & 0.903 & 0.785 & 0.518 \\
+RT-DETR      & HERIDAL & 0.792 & 0.881 & 0.835 & 0.556 \\
+YOLOv11      & HERIDAL & 0.769 & 0.855 & 0.803 & 0.510 \\
+\midrule
+Faster R-CNN & SARD    & 0.879 & 0.967 & 0.896 & 0.615 \\
+RT-DETR      & SARD    & 0.888 & 0.972 & 0.929 & 0.633 \\
+YOLOv11      & SARD    & 0.891 & 0.955 & 0.928 & 0.601 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Robustness Across Conditions}
+\TODO{Prose. The spread is the story: rain costs 3.6 points at severity
+3 while low light costs everything. A single averaged robustness score
+would hide the entire finding.}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/heatmap_sard.pdf}
+\caption{Relative recall drop, $(\text{clean}-\text{corrupted})/\text{clean}$,
+for each detector on SARD. Rows are grouped by disaster family and
+ordered to match Table~\ref{tab:taxonomy}. Darker cells indicate greater
+degradation. The \texttt{low\_light} row saturates for all three
+architectures.}
+\label{fig:heatmap}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/severity_sard_yolo11.pdf}
+\caption{Recall against corruption severity for YOLOv11 on SARD, with
+bootstrap 95\% confidence intervals shaded (1{,}000 resamples per
+condition). All curves originate from the same clean baseline. Colour
+indicates disaster family; line style distinguishes corruptions within a
+family.}
+\label{fig:severity}
+\end{figure*}
+
+\begin{table}[t]
+\centering\small
+\caption{Recall by corruption and severity, YOLOv11 on SARD, bootstrap
+means over 1{,}000 resamples. Clean baseline 0.891. Ordered by severity-3
+recall.}
+\label{tab:spectrum}
+\begin{tabular}{llccc}
+\toprule
+Corruption & Family & s1 & s2 & s3 \\
+\midrule
+\texttt{rain\_streaks}    & Storm      & 0.893 & 0.883 & \textbf{0.855} \\
+\texttt{water\_glare}     & Flood      & 0.859 & 0.809 & 0.666 \\
+\texttt{inundation}       & Flood      & 0.860 & 0.744 & 0.494 \\
+\texttt{motion\_blur}     & Storm      & 0.792 & 0.613 & 0.477 \\
+\texttt{smoke\_haze}      & Wildfire   & 0.810 & 0.667 & 0.391 \\
+\texttt{turbidity\_cast}  & Flood      & 0.796 & 0.576 & 0.191 \\
+\texttt{fire\_warm\_tint} & Wildfire   & 0.689 & 0.311 & 0.099 \\
+\texttt{dust\_haze}       & Earthquake & 0.673 & 0.272 & 0.058 \\
+\texttt{low\_light}       & Storm      & 0.184 & 0.007 & \textbf{0.000} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Mean relative recall drop by disaster family, averaged over
+severities. Flood is the mildest family on both datasets for every
+model; storm is worst on HERIDAL and earthquake on SARD.}
+\label{tab:family}
+\begin{tabular}{lccc}
+\toprule
+Family & Faster R-CNN & RT-DETR & YOLOv11 \\
+\midrule
+\multicolumn{4}{l}{\emph{HERIDAL}} \\
+Storm      & 0.784 & 0.874 & 0.829 \\
+Earthquake & 0.534 & 0.568 & 0.571 \\
+Wildfire   & 0.335 & 0.459 & 0.405 \\
+Flood      & 0.301 & 0.231 & 0.246 \\
+\midrule
+\multicolumn{4}{l}{\emph{SARD}} \\
+Earthquake & 0.481 & 0.630 & 0.624 \\
+Storm      & 0.401 & 0.440 & 0.413 \\
+Wildfire   & 0.327 & 0.451 & 0.445 \\
+Flood      & 0.264 & 0.293 & 0.252 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Detection Collapse Under Low Light}
+\TODO{Prose. The headline. Give it room. Cross-dataset,
+cross-architecture, with the threshold-independent mAP confirmation.
+State the two safe claims and avoid the unsafe one: Faster R-CNN is
+consistently most robust; the YOLOv11 versus RT-DETR ordering is
+dataset-dependent and must not be generalized. Note that Faster R-CNN
+has the strictest threshold and is nonetheless most robust, which closes
+off the obvious alternative explanation.}
+
+\begin{table}[t]
+\centering\small
+\caption{Recall under \texttt{low\_light} at each model's frozen
+operating point, with bootstrap 95\% intervals where computed. Recall
+reaches exactly zero for all three architectures on both datasets at
+severity 3, and every one of 1{,}000 resamples agrees, so the interval is
+degenerate at zero.}
+\label{tab:lowlight}
+\begin{tabular}{llccc}
+\toprule
+Model & Thr. & s1 & s2 & s3 \\
+\midrule
+\multicolumn{5}{l}{\emph{HERIDAL} ($n=101$)} \\
+RT-DETR      & 0.65 & 0.000 [0.000, 0.000] & 0.000 [0.000, 0.000] & 0.000 [0.000, 0.000] \\
+YOLOv11      & 0.45 & 0.048 [0.027, 0.073] & 0.000 [0.000, 0.000] & 0.000 [0.000, 0.000] \\
+Faster R-CNN & 0.99 & 0.452 [0.365, 0.540] & 0.110 [0.064, 0.163] & 0.000 [0.000, 0.000] \\
+\midrule
+\multicolumn{5}{l}{\emph{SARD} ($n=862$)} \\
+Faster R-CNN & 0.96 & 0.419 & 0.077 & 0.000 \\
+RT-DETR      & 0.60 & 0.260 & 0.013 & 0.000 \\
+YOLOv11      & 0.30 & 0.184 [0.157, 0.212] & 0.007 [0.003, 0.012] & 0.000 [0.000, 0.000] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Threshold-independent confirmation on HERIDAL. mAP$_{50}$ scans
+all confidence thresholds, so it is immune to the objection that a zero
+reflects a badly placed operating point. It collapses in lockstep with
+recall: the detections are absent, not merely below threshold.}
+\label{tab:calibration}
+\begin{tabular}{lcc}
+\toprule
+Model & Clean mAP$_{50}$ & \texttt{low\_light} s1 mAP$_{50}$ \\
+\midrule
+RT-DETR      & 0.835 & \textbf{0.001} \\
+YOLOv11      & 0.803 & 0.064 \\
+Faster R-CNN & 0.785 & 0.537 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Localization Stability}
+\TODO{Prose. State the finding as a claim about magnitude, not
+independence: both recall and stability decline, but recall spans nearly
+the full unit range while stability never falls below 0.78. n\_common
+tracks recall exactly. The operational implication: an operator can
+trust the boxes that appear; the risk is the ones that never do.}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/decoupling_sard_yolo11.pdf}
+\caption{Recall against localization stability, YOLOv11 on SARD, one
+point per corruption and severity, point area proportional to the number
+of instances detected in both the clean and corrupted conditions. Both
+axes span the full unit range. Points sweep the entire recall range while
+remaining in a narrow band near the top of the stability axis.}
+\label{fig:decoupling}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/gallery_lowlight.pdf}
+\caption{\TODO{Qualitative pair. Clean frame beside the same frame under
+\texttt{low\_light}, ground truth in cyan, retained detections in green.}}
+\label{fig:qualitative}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\section{Limitations}
+% ---------------------------------------------------------------------
+\TODO{Seven items, full prose in docs/WRITING_PACK.md section 4:
+synthetic corruptions on real imagery; single training seed; scope of
+two datasets and three detectors; the rain\_streaks proxy confound;
+monotonicity verified on a subsample by mean; the inundation ripple; no
+mitigation study.}
+
+% ---------------------------------------------------------------------
+\section{Conclusion}
+% ---------------------------------------------------------------------
+\TODO{Three moves, no new numbers. Restate the gap. Restate the finding
+at its strongest. State the implication and the next step. Do not close
+on a claim of generality the study does not support.}
+
+{\small
+\bibliographystyle{ieee_fullname}
+\bibliography{aegisbench}
+}
