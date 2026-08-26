@@ -7,62 +7,236 @@
 %
 % Every number in the tables below is measured and traceable to a file
 % in results/. Do not edit a number here without changing its source.
-% \TODO markers show what is still to be written.
+% \TODO markers show what is still to be measured (dataset split
+% counts only; everything else is written).
 % =====================================================================
 
 \newcommand{\TODO}[1]{\textcolor{red}{[TODO: #1]}}
 
+\begin{abstract}
+Aerial person detection is a core capability for search and rescue, yet the
+datasets used to benchmark it were collected in calm, clear conditions,
+while the missions that need it most take place during floods, wildfires,
+storms, and at night. We present AegisBench, a robustness benchmark that
+evaluates aerial search-and-rescue person detection under nine physically
+motivated visual corruptions spanning four disaster families, each at three
+severities calibrated by a declared image statistic. We evaluate three
+architecturally distinct detectors, a two-stage CNN, a single-stage CNN, and
+a transformer detector, across 168 conditions on two datasets covering the
+high-altitude and low-altitude capture regimes, scoring every model with one
+shared evaluator at operating points frozen on clean validation data.
+Robustness is highly uneven across conditions: heavy rain costs only about
+3.6 points of recall at the highest severity, while low light produces
+complete detection collapse, recall reaching exactly zero for all three
+architectures on both datasets, and every one of 1,000 bootstrap resamples
+of the test set agrees, so the confidence interval is degenerate at zero. A
+localization-stability analysis shows that surviving detections remain
+accurately placed, indicating that corruption causes missed detections
+rather than positional drift. We release the benchmark, the corruption
+engine, and the full evaluation pipeline.
+\end{abstract}
+
 % ---------------------------------------------------------------------
 \section{Introduction}
 % ---------------------------------------------------------------------
-\TODO{Paragraph 1, stakes. Aerial SAR, why automated detection matters,
-why failure is costly. Two sentences of context then technical framing.}
 
-\TODO{Paragraph 2, the gap. Published results on HERIDAL and SARD are
-strong; both were collected in calm clear conditions; deployments are
-not. State plainly that no systematic measurement exists of behaviour
-under the visual conditions of the disasters these systems respond to.
-This is the sentence the paper hangs on.}
+Aerial search and rescue depends on rapidly scanning wide, difficult terrain
+for a missing person, and speed is the dominant factor in survival: the
+first hours after a person goes missing are consistently the period in
+which recovery is most likely. Automated person detection in aerial and
+drone imagery has become a practical tool for this task, letting a single
+operator or algorithm review coverage that would take a ground team days to
+traverse. A detector that misses a person in the frame is not a benign
+error; it is a missed rescue.
 
-\TODO{Paragraph 3, the approach. Three things that make this more than
-an ImageNet-C transplant: corruptions modeled on documented disaster
-optics, severities calibrated against measurable statistics, frozen
-clean-validation operating points.}
+Published results on the two standard benchmarks for this task, HERIDAL and
+SARD, report strong detection performance. Both datasets, however, were
+collected in calm, clear, well-lit conditions. Real search-and-rescue
+missions are launched precisely because something has gone wrong: after a
+flood, during a wildfire, in a storm, or at night, when visibility is worst
+and the need for automated coverage is greatest. No existing benchmark
+systematically measures how aerial person detectors behave under the visual
+conditions of the disasters that trigger these deployments. The gap between
+a detector's benchmarked accuracy and its operational reliability is, at
+present, simply unmeasured.
 
-\TODO{Paragraph 4, the findings. Lead with the low-light collapse and
-its interval. Then the spread across conditions. Then the localization
-decoupling. One sentence each.}
+We address this gap with a benchmark that applies nine physically motivated
+visual corruptions, spanning four disaster families (flood, wildfire,
+storm, and earthquake), to the HERIDAL and SARD test sets, and evaluates
+three architecturally distinct detectors across all resulting conditions.
+Three design choices distinguish this from a straightforward transplant of
+the ImageNet-C corruption-robustness methodology to aerial imagery. First,
+each corruption is built on a documented optical model of a specific
+disaster condition, such as the Koschmieder atmospheric scattering model
+for smoke and dust, rather than a generic image-processing filter. Second,
+each corruption's three severities are calibrated against a declared,
+machine-verified image statistic, rather than chosen by eye. Third, every
+detector's confidence threshold is selected once on clean validation data
+and frozen across all corrupted conditions, matching how a system would
+actually be deployed rather than measuring a best case unavailable in the
+field.
 
-% Paragraph 5, contributions: ALREADY WRITTEN. Paste here.
+The results show that robustness is highly uneven across conditions. Heavy
+rain, at its most severe, costs a detector only a few points of recall.
+Low light, in contrast, drives recall to exactly zero, with bootstrap
+confidence intervals degenerate at $[0.000, 0.000]$, on both datasets and
+for all three architectures, a collapse confirmed independently of any
+confidence threshold by mAP. A second robustness axis, localization
+stability, shows that the detections a model does retain stay accurately
+placed even as recall collapses: the dominant failure mode is a detector
+ceasing to find a person, not finding one and misplacing the box.
+
+Our contributions are:
+
+\begin{itemize}
+\item A disaster-grounded corruption benchmark for aerial search-and-rescue
+  person detection: nine corruptions across four disaster families, each at
+  three severities calibrated by a declared, measurable image statistic,
+  applied to two datasets spanning the high- and low-altitude capture
+  regimes, with every stochastic element seeded from a stable hash so the
+  corrupted benchmark is a fixed, reproducible dataset rather than a random
+  process.
+\item A systematic robustness evaluation of three architecturally distinct
+  detectors across 168 conditions, scored by one shared evaluator at
+  operating points frozen on clean validation data, with bootstrap
+  confidence intervals on the headline metrics, released as a full,
+  provenance-logged pipeline.
+\item The identification of catastrophic, cross-architecture detection
+  collapse under low light, where recall reaches exactly zero with
+  degenerate confidence intervals on both datasets and for all three
+  detectors, alongside a severity ranking across all nine corruptions.
+\item A localization-stability analysis that separates two failure modes
+  normally conflated under a single recall number: losing a detection
+  entirely, versus keeping it with a box that drifts off the person.
+\end{itemize}
 
 % ---------------------------------------------------------------------
 \section{Related Work}
 % ---------------------------------------------------------------------
 
 \subsection{Aerial and Search-and-Rescue Person Detection}
-\TODO{NOT WRITTEN. Highest priority prose remaining. Must cite HERIDAL
-and SARD (the datasets you evaluate on), plus TinyPerson and
-SeaDronesSee, both WACV papers in adjacent SAR domains. Must contain the
-SARD-Corr differentiation paragraph: see docs/WRITING_PACK.md section 3
-for text. Ends by establishing that all of this is evaluated under clear
-conditions.}
+
+Aerial search-and-rescue person detection is most often benchmarked on
+HERIDAL~\cite{bozic2019heridal}, high-altitude orthophoto imagery of
+wilderness terrain, and SARD~\cite{sambolek2021sard}, lower-altitude drone
+video of staged rescue scenarios; both report strong detection accuracy
+from CNN-based detectors trained and evaluated under calm, clear
+conditions. Adjacent WACV benchmarks extend the small-person-in-large-scene
+setting to other environments: TinyPerson~\cite{yu2020tinyperson} to
+general tiny-object detection and SeaDronesSee~\cite{varga2022seadronessee}
+to maritime search and rescue, both under similarly unconstrained visual
+conditions.
+
+The closest prior robustness evaluation on this exact data is the
+SARD-Corr supplement released with SARD itself~\cite{sambolek2021sard},
+which adds fog, snow, ice, and motion-blur variants to a subset of the
+imagery. That supplement applies a small set of generic weather effects
+without a calibrated severity structure and reports a single robustness
+check rather than a systematic sweep. We extend this into a benchmark: nine
+corruptions organized by disaster family, each at three severities
+calibrated against a declared and machine-checked image statistic,
+evaluated across three architecturally distinct detectors and two capture
+regimes with bootstrap confidence intervals and a second,
+localization-stability axis. Across all of this prior work, evaluation is
+conducted exclusively under clear, undegraded conditions.
 
 \subsection{Corruption Robustness Benchmarking}
-% ALREADY WRITTEN. Paste here.
+
+Corruption-robustness benchmarking, established by
+ImageNet-C~\cite{hendrycks2019imagenetc}, evaluates models under a fixed
+suite of synthetic corruptions at graded severities. Michaelis et
+al.~\cite{michaelis2019benchmarking} extended this methodology to object
+detection in autonomous driving, applying generic corruptions to Pascal,
+COCO, and Cityscapes; our domain (aerial small-object search and rescue
+rather than street-level driving), our disaster-specific and physically
+calibrated corruptions rather than generic transplants, and our
+localization-stability axis all differ from that work, which remains the
+closest methodological antecedent.
+
+Robustness benchmarking for drone imagery under weather-like conditions has
+become active only very recently. UAV-C~\cite{liu2024uavc} benchmarks UAV
+\emph{tracking}, not detection, against eighteen generic corruptions
+borrowed from the standard common-corruptions taxonomy.
+HazyDet~\cite{feng2024hazydet} pairs physics-driven synthetic haze with
+real foggy drone photographs for general object detection: one condition
+rather than nine, and objects generally rather than search-and-rescue
+persons specifically. WRRT-DETR~\cite{liu2025wrrtdetr} builds a
+weather-robust RT-DETR variant around AWOD, a maritime dataset of imagery
+captured under fog, flare, and low-light conditions. Each of these targets
+a different task, a narrower corruption scope, or a different domain than
+the disaster-grounded, person-specific, nine-corruption sweep presented
+here.
 
 \subsection{Adverse Weather and Low-Light Vision}
-% ALREADY WRITTEN. Paste here. Candidate for the largest cut, see
-% docs/DRAFT_REVIEW.md section 5.
+
+Our physical corruption models draw on the atmospheric-optics and
+low-light literature. Narasimhan and Nayar~\cite{narasimhan2002vision}
+formalize the Koschmieder scattering model underlying our haze-family
+corruptions. Chen et al.~\cite{chen2018dark} motivate modeling low light in
+the linear photometric domain, which our \texttt{low\_light} corruption
+follows. Garg and Nayar~\cite{garg2007rain} establish the physical
+rain-streak model our \texttt{rain\_streaks} corruption adapts. Sakaridis
+et al.~\cite{sakaridis2018foggy} apply synthetic fog to real driving
+imagery, the closest methodological precedent for corrupting a real
+dataset with a physical model, and later contribute real adverse-condition
+data~\cite{sakaridis2021acdc}; dehazing~\cite{he2011dark} and low-light
+enhancement~\cite{loh2019exdark} literature supports the same physical
+models but restores images rather than measuring detector degradation.
+This body of work is concentrated on autonomous driving and ground-level
+imagery and on image restoration; none of it measures aerial person
+detector degradation under these conditions directly.
 
 \subsection{Small-Object Detection and Tiling}
-% ALREADY WRITTEN. Paste here. Trim the FPN background paragraph.
+
+People in HERIDAL-scale aerial imagery occupy a tiny fraction of a roughly
+$4000\times3000$ frame, the regime that motivates tiled
+inference~\cite{akyon2022sahi}: an image is cut into overlapping windows,
+detected independently, and merged back to full-image coordinates. We
+adopt this protocol for both datasets so that tiling is not itself a
+confound when comparing degradation across the two capture regimes, and
+evaluate throughout against full-image ground truth after
+class-agnostic non-maximum-suppression merging.
 
 % ---------------------------------------------------------------------
 \section{Benchmark Design}
 % ---------------------------------------------------------------------
-% ALREADY WRITTEN: taxonomy, physical models, calibration, determinism,
-% ground-truth alignment. Paste here, WITH the Koschmieder correction
-% from docs/DRAFT_REVIEW.md section 1.1 applied.
+
+Nine corruptions are organized into four disaster families: flood
+(\texttt{water\_glare}, \texttt{turbidity\_cast}, \texttt{inundation}),
+wildfire (\texttt{smoke\_haze}, \texttt{fire\_warm\_tint}), storm
+(\texttt{rain\_streaks}, \texttt{motion\_blur}, \texttt{low\_light}), and
+earthquake and post-disaster (\texttt{dust\_haze}). Each corruption models
+a documented optical signature of its disaster family rather than a
+generic image-processing filter (Table~\ref{tab:taxonomy},
+Figure~\ref{fig:taxonomy}).
+
+\paragraph{Physical models.} Three corruptions, \texttt{smoke\_haze} and
+\texttt{fire\_warm\_tint} in the wildfire family and \texttt{dust\_haze} in
+the earthquake family, are built on the Koschmieder atmospheric scattering
+model~\cite{koschmieder1924theorie,narasimhan2002vision},
+$I = J t + A(1-t)$, where $J$ is the clear-scene radiance, $A$ is the
+atmospheric light, and $t$ is the transmission map. \texttt{smoke\_haze}
+and \texttt{dust\_haze} differ principally in the chromaticity of $A$:
+smoke uses a neutral-gray airlight, dust a brown mineral airlight,
+consistent with the documented spectral difference between combustion
+aerosol and suspended mineral particulate, and verified directly by a unit
+test on the red-to-blue channel ratio of the two corruptions.
+\texttt{fire\_warm\_tint} applies the same scattering model with a warm
+airlight and a higher-frequency transmission field, preceded by a
+white-balance shift toward orange modeling low-color-temperature
+firelight.
+
+The flood family is modeled differently, since sediment-laden water is not
+an atmospheric scattering process. \texttt{turbidity\_cast} applies a blend
+toward a mud chromaticity, compresses contrast toward the scene mean, and
+reduces saturation, reproducing imagery dominated by muddy water rather
+than by suspended aerosol. \texttt{low\_light} is modeled in the linear
+photometric domain~\cite{chen2018dark} with a decode gamma of 2.2, photon
+scaling, a twilight blue shift, and signal-dependent shot and read noise
+whose relative magnitude grows as light falls. \texttt{rain\_streaks}
+follows the additive directional-streak rain model of Garg and
+Nayar~\cite{garg2007rain} over a blurred rain veil, and
+\texttt{water\_glare} adds specular sun-glint saturation.
 
 \begin{table*}[t]
 \centering\small
@@ -109,21 +283,148 @@ against a declared image statistic (Table~\ref{tab:taxonomy}).}
 
 \subsection{Calibration and Severity}
 \label{sec:calibration}
-% ALREADY WRITTEN and already corrected for the sampling procedure.
+
+Each corruption declares a measurable image statistic in
+\texttt{configs/corruptions.yaml} whose value must move monotonically
+across severities one through three (Table~\ref{tab:taxonomy}). Severity
+calibration is verified on a fixed random subset of 20 images drawn without
+replacement from the HERIDAL test split, held constant across all nine
+corruptions and all three severities. For each corruption and severity we
+measure the declared statistic on every image in that subset and verify
+that the subset mean moves in the declared direction; the same check runs
+on synthetic imagery in the unit-test suite. This is a guarantee about the
+mean over that subset, not about every individual image: the corruptions
+are stochastic, so an individual image can invert without the severity
+ladder being ill-formed.
+
+Eight of nine corruptions pass this check directly. \texttt{rain\_streaks}
+does not: its declared statistic, streak density, has no closed-form image
+measure, so edge strength is substituted as a proxy, and the proxy is
+confounded, since additional streaks raise measured edge strength while the
+veil blur applied in the same corruption suppresses it.
+\texttt{rain\_streaks}' severity is instead defined directly by its
+physical generation parameters (streaks per megapixel, streak length, and
+veil intensity, all increasing by construction; Table~\ref{tab:taxonomy})
+and verified by visual audit; downstream recall degrades in the expected
+direction regardless (Table~\ref{tab:spectrum}), independent evidence that
+the corruption itself intensifies with severity even though this one proxy
+statistic does not track it cleanly.
+
+The calibration statistic makes each corruption's severity ladder
+measurable and falsifiable \emph{within} that corruption. It is not a
+cross-corruption difficulty normalizer: two corruptions matched on the same
+statistic are not expected to be equally damaging, and we make no such
+claim. \texttt{smoke\_haze} and \texttt{dust\_haze} illustrate this
+directly: they reach nearly identical RMS contrast at every severity
+(0.0475 versus 0.0489 at severity 3) yet differ 6.7-fold in cost
+(Section~\ref{sec:results}), evidence that detection difficulty in this
+domain is not reducible to global contrast reduction alone. We do not
+isolate which of the two corruptions' remaining differences, airlight
+chromaticity, transmission-field granularity, or added grain, carries the
+effect.
+
+\paragraph{Ground-truth alignment, scale invariance, and determinism.} All
+pixel-unit generation parameters (blur kernel length, streak length, bloom
+sigma, ripple amplitude) are specified per 1000 pixels of the longer image
+side and scaled at runtime, so severity 2 means the same thing on a
+$4000\times3000$ HERIDAL frame and a $1920\times1080$ SARD frame.
+Corruptions are appearance-only: they recolor, darken, haze, or overlay the
+existing pixel grid without moving object content, so clean ground-truth
+boxes remain exactly valid on corrupted images. The one exception is
+\texttt{inundation}, which applies a water-refraction ripple via pixel
+remapping while the ground-truth box stays fixed; the ripple amplitude is
+bounded well below person scale, reaching approximately 1.4 pixels at
+severity 3 on a 4000-pixel frame, so residual misalignment is negligible.
+Every stochastic element is seeded by a SHA-256-based stable hash of
+$(\text{image\_id}, \text{corruption}, \text{severity}, \text{global\_seed})$,
+independent of \texttt{PYTHONHASHSEED} and platform, so the corrupted
+benchmark is a fixed dataset that regenerates bit-identically on any
+machine, and we do not redistribute imagery: the code, the parameter
+table, and this determinism are sufficient for anyone holding the original
+datasets to reproduce every corrupted image exactly.
 
 % ---------------------------------------------------------------------
 \section{Evaluation Protocol}
 % ---------------------------------------------------------------------
-% ALREADY WRITTEN: frozen operating points, shared evaluator, tiling,
-% bootstrap, provenance. Paste here. NOTE: delete the duplicated
-% sentence in the tiling subsection (the "removes tiling itself as a
-% confound" sentence appears twice).
+
+\paragraph{Frozen operating points.} Every detector needs a confidence
+threshold to convert raw scores into detections. We select this threshold
+once per model per dataset, by maximizing F1 on clean validation data, and
+freeze it across all 28 conditions for that model (Table~\ref{tab:thresholds});
+we never re-tune on corrupted data. A deployed system commits to one
+threshold before a mission, and tuning per condition would measure a best
+case unavailable to it.
+
+\paragraph{Shared evaluator.} All three architectures are scored by one
+evaluator: greedy, score-ordered matching at IoU $\geq 0.5$, one prediction
+per ground-truth box, so no architecture is scored by a bespoke framework
+metric.
+
+\paragraph{Tiling and full-image evaluation.} Both datasets are processed
+with the same overlapping-tile pipeline: 1024-pixel tiles with 256 pixels
+of overlap. A $4000\times3000$ HERIDAL frame yields 20 tiles and a
+$1920\times1080$ SARD frame yields 6. Detection runs independently per
+tile, predicted boxes are mapped back into full-image coordinates, and
+overlapping predictions are merged with class-agnostic non-maximum
+suppression, so evaluation is always performed against the original
+full-resolution ground truth rather than against individual tiles.
+Applying one inference protocol to both datasets removes tiling itself as
+a confound when comparing degradation across capture regimes. At
+evaluation time, corruptions are applied to the full frame before tiling,
+since atmospheric structure such as haze gradients and flood masks is
+spatially coherent across a whole scene.
+
+\paragraph{Relative performance drop.} Degradation is reported relative to
+each model's own clean score, $\mathrm{rPD} = (\text{clean} -
+\text{corrupted})/\text{clean}$, since HERIDAL and SARD do not share a
+difficulty floor and raw corrupted metrics are not comparable across them.
+
+\paragraph{Localization stability.} For instances detected in both the
+clean and corrupted conditions, we measure the IoU between the two
+predicted boxes, a scale-normalized center shift, and the drop in
+box-versus-ground-truth fit. Restricting to commonly detected instances
+means this metric is not confounded by recall: it asks whether a surviving
+detection stayed planted on the person, a question distinct from whether
+the person was found at all, in the tradition of prior detector
+failure-mode decompositions~\cite{hoiem2012diagnosing,bolya2020tide}.
+
+\paragraph{Bootstrap confidence intervals.} We resample the test set by
+image with replacement, 1000 resamples per condition, and report the 2.5th
+and 97.5th percentiles~\cite{efron1993bootstrap}.
+
+\paragraph{Provenance.} Every result row logs the git commit, a hash of the
+corruption configuration, the global seed, and a timestamp, and raw
+per-condition predictions are archived, so any reported number is
+traceable to the exact code and parameters that produced it and
+re-analysis does not require rerunning inference.
 
 % ---------------------------------------------------------------------
 \section{Experimental Setup}
 % ---------------------------------------------------------------------
-% ALREADY DRAFTED with bracketed placeholders. Fill them from the tables
-% below and from docs/WRITING_PACK.md section 1.
+
+We fine-tune three architecturally distinct detectors from pretrained
+weights, one training run per model per dataset: Faster
+R-CNN~\cite{ren2015fasterrcnn}, a two-stage CNN; YOLOv11~\cite{ultralytics2024yolo11},
+a single-stage CNN; and RT-DETR~\cite{zhao2024rtdetr}, a transformer
+detector in the DETR~\cite{carion2020detr} lineage. All three train at
+1024-pixel input resolution (Table~\ref{tab:training}); hyperparameters
+follow each architecture's established fine-tuning practice rather than a
+shared schedule, and the two-order-of-magnitude difference in learning
+rate between RT-DETR and the two CNN detectors follows this convention
+rather than tuning against corrupted data, which never enters training or
+threshold selection. Training uses a single consumer GPU (8~GB VRAM),
+worth stating since it shows the benchmark is reproducible without a
+cluster.
+
+HERIDAL uses its official test split of 101 images untouched, with a
+validation split carved deterministically as 15\% of the official train
+split (\TODO{n} train, \TODO{n} validation images, measured from our
+prepared records). SARD frames originate from video, so consecutive frames
+are near-duplicates; splitting is group-aware, assigning an entire video
+sequence to exactly one of train, validation, or test by filename-derived
+group identity, with the split tooling refusing degenerate groupings.
+SARD's official test split used here contains 862 frames (\TODO{n} train,
+\TODO{n} validation).
 
 \begin{table}[t]
 \centering\small
@@ -165,16 +466,23 @@ YOLOv11      & 0.45 & 0.30 \\
 
 % ---------------------------------------------------------------------
 \section{Results}
+\label{sec:results}
 % ---------------------------------------------------------------------
-% NOT WRITTEN. All numbers below are measured. Prose guidance for each
-% subsection is in docs/WRITING_PACK.md section 2.
 
 \subsection{Clean Baselines}
-\TODO{Prose. Establishes the pipeline is sound before any robustness
-claim. Compare against the published HERIDAL reference point and note
-that modest deltas across architectures are expected. Note SARD is the
-easier task, which is why everything downstream is reported as relative
-drop.}
+
+Table~\ref{tab:clean} reports clean-condition performance for all three
+detectors on both datasets. On HERIDAL, our numbers sit modestly below the
+commonly cited YOLOv5L reference point of roughly 0.90 precision, 0.893
+recall, and 0.834 mAP$_{50}$~\cite{bozic2019heridal}, and are comparable in
+mAP and precision; this order-of-magnitude agreement across different
+architectures and input pipelines is the claim we make, not a superiority
+claim. Clean recall is substantially higher on SARD (0.879 to 0.891) than
+on HERIDAL (0.745 to 0.792), consistent with SARD's lower-altitude capture
+and larger relative object size making it the easier detection task.
+Because the two datasets do not share a difficulty floor, every
+degradation result below is reported as relative drop against each model's
+own clean score rather than as a raw corrupted metric.
 
 \begin{table}[t]
 \centering\small
@@ -198,9 +506,24 @@ YOLOv11      & SARD    & 0.891 & 0.955 & 0.928 & 0.601 \\
 \end{table}
 
 \subsection{Robustness Across Conditions}
-\TODO{Prose. The spread is the story: rain costs 3.6 points at severity
-3 while low light costs everything. A single averaged robustness score
-would hide the entire finding.}
+
+Table~\ref{tab:spectrum} and Figure~\ref{fig:severity} report recall by
+corruption and severity for YOLOv11 on SARD. Robustness is highly uneven.
+At matched severity 3, recall ranges from 0.855 for \texttt{rain\_streaks},
+a 3.6-point drop from the 0.891 clean baseline, to exactly 0.000 for
+\texttt{low\_light}, a total loss. This range, produced by corruptions
+calibrated on comparable statistical ladders (Table~\ref{tab:taxonomy}),
+is the argument that this benchmark is diagnostic rather than merely hard:
+a single averaged robustness score would collapse the entire finding into
+one number and hide it.
+
+Table~\ref{tab:family} aggregates relative recall drop by disaster family.
+Flood is the mildest family on both datasets for every model without
+exception, the one family-level ordering fully consistent across the
+study. Storm is worst on HERIDAL, pulled up by \texttt{low\_light}'s
+collapse; earthquake (\texttt{dust\_haze}) is worst on SARD.
+Figure~\ref{fig:heatmap} shows the same pattern per corruption: the
+\texttt{low\_light} row saturates for all three architectures.
 
 \begin{figure*}[t]
 \centering
@@ -273,13 +596,37 @@ Flood      & 0.264 & 0.293 & 0.252 \\
 \end{table}
 
 \subsection{Detection Collapse Under Low Light}
-\TODO{Prose. The headline. Give it room. Cross-dataset,
-cross-architecture, with the threshold-independent mAP confirmation.
-State the two safe claims and avoid the unsafe one: Faster R-CNN is
-consistently most robust; the YOLOv11 versus RT-DETR ordering is
-dataset-dependent and must not be generalized. Note that Faster R-CNN
-has the strictest threshold and is nonetheless most robust, which closes
-off the obvious alternative explanation.}
+
+\texttt{low\_light} is the benchmark's headline result
+(Table~\ref{tab:lowlight}). By severity 3, recall reaches exactly 0.000
+for all three architectures on both HERIDAL ($n=101$) and SARD ($n=862$),
+and every one of 1{,}000 bootstrap resamples of the test set agrees: the
+confidence interval is degenerate at $[0.000, 0.000]$. A two-stage CNN, a
+single-stage CNN, and a transformer detector are about as architecturally
+different as detectors get, and by severity 3 all three sit at exactly the
+same floor, which rules out an architecture-specific explanation.
+
+A natural objection is that a frozen-threshold zero reflects a badly placed
+operating point rather than a genuine failure to detect.
+Table~\ref{tab:calibration} settles this with mAP$_{50}$, which scans every
+confidence threshold and is therefore immune to the objection: on HERIDAL
+at severity 1, RT-DETR's mAP$_{50}$ collapses from 0.835 clean to 0.001,
+YOLOv11's from 0.803 to 0.064, and Faster R-CNN's from 0.785 to 0.537, in
+lockstep with frozen-threshold recall. If this were a calibration
+artifact, mAP would stay high while recall fell; it does not, so the
+detections are absent rather than merely below threshold.
+
+Two claims are safe across both datasets: total collapse by severity 3
+replicates for all three architectures, and Faster R-CNN is consistently
+the most robust of the three at low light, on both datasets, at every
+severity where any model retains recall, despite having the strictest
+frozen threshold (0.99 on HERIDAL, versus 0.65 for RT-DETR and 0.45 for
+YOLOv11), which rules out threshold strictness as the explanation. One
+claim is not safe: RT-DETR is the most fragile architecture on HERIDAL
+(zero recall at every severity, including the mildest), but this reverses
+on SARD, where RT-DETR outperforms YOLOv11 at severities 1 and 2. The
+ordering between YOLOv11 and RT-DETR is dataset-dependent, not an
+architecture property, and we state it as such.
 
 \begin{table}[t]
 \centering\small
@@ -325,11 +672,25 @@ Faster R-CNN & 0.785 & 0.537 \\
 \end{table}
 
 \subsection{Localization Stability}
-\TODO{Prose. State the finding as a claim about magnitude, not
-independence: both recall and stability decline, but recall spans nearly
-the full unit range while stability never falls below 0.78. n\_common
-tracks recall exactly. The operational implication: an operator can
-trust the boxes that appear; the risk is the ones that never do.}
+
+Figure~\ref{fig:decoupling} plots recall against localization stability
+for YOLOv11 on SARD, one point per corruption and severity. Both axes span
+the full unit range deliberately: stability declines from 0.98 to 0.78
+across the severity range while recall falls from 0.89 to 0.00, so both
+quantities do decline, and we do not claim they are independent. The claim
+the data supports is one of magnitude: recall sweeps nearly the entire
+unit range while stability stays inside a narrow band near the top, never
+falling below 0.78 even in conditions that remove almost every detection,
+while $n_{\text{common}}$, the number of instances detected in both
+conditions, tracks recall exactly (\texttt{low\_light}: 202, then 8, then
+0). The dominant failure mode is a detection disappearing, not a box
+drifting off the person. Figure~\ref{fig:qualitative} shows this directly:
+a clean HERIDAL frame beside the same frame under \texttt{low\_light},
+where every annotated person goes undetected. Operationally, if surviving
+detections stay accurately placed, the risk for a deployed system lies in
+the detections that never appear rather than in ones that appear
+misplaced, which also indicates what a mitigation should target:
+sensitivity rather than localization.
 
 \begin{figure}[t]
 \centering
@@ -345,26 +706,81 @@ remaining in a narrow band near the top of the stability axis.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/gallery_lowlight.pdf}
-\caption{\TODO{Qualitative pair. Clean frame beside the same frame under
-\texttt{low\_light}, ground truth in cyan, retained detections in green.}}
+\caption{Aerial person detection under \texttt{low\_light} corruption. A
+clean HERIDAL frame with ground-truth annotations (cyan) and detections
+retained at the model's frozen operating point (green), beside the same
+frame under \texttt{low\_light} at severity 1, the mildest level in our
+benchmark. Every detection is lost even at this mildest severity.}
 \label{fig:qualitative}
 \end{figure}
 
 % ---------------------------------------------------------------------
 \section{Limitations}
 % ---------------------------------------------------------------------
-\TODO{Seven items, full prose in docs/WRITING_PACK.md section 4:
-synthetic corruptions on real imagery; single training seed; scope of
-two datasets and three detectors; the rain\_streaks proxy confound;
-monotonicity verified on a subsample by mean; the inundation ripple; no
-mitigation study.}
+
+Our corruptions are synthetic, applied to real imagery, following the
+ImageNet-C and Foggy Cityscapes
+lineage~\cite{hendrycks2019imagenetc,sakaridis2018foggy}. This is what
+makes controlled, per-condition attribution possible at all, since
+disaster imagery rarely comes with a matched clean counterpart of the same
+scene, but it is also the benchmark's ceiling: it measures response to
+modeled optics, not to live disaster footage, and validating against real
+adverse-condition imagery is a natural next step. We train one seed per
+model per dataset; our bootstrap intervals quantify variance from which
+images are in the test set, not from training. We evaluate two datasets
+and three detectors, prioritizing methodological depth, physically
+grounded corruption modeling, group-aware splitting, frozen-threshold
+evaluation, and bootstrap confidence intervals over dataset and model
+count, consistent with a diagnostic benchmark rather than a leaderboard
+survey. \texttt{rain\_streaks}' declared statistic has no closed-form
+image measure and its substituted proxy is confounded by the corruption's
+own veil blur (Section~\ref{sec:calibration}); severity is instead defined
+by monotonically increasing generation parameters and verified by visual
+audit. Monotonicity is verified on a fixed random 20-image subset by its
+mean, not per image, since the corruptions are stochastic.
+\texttt{inundation}'s ripple leaves ground-truth boxes unwarped, with
+negligible amplitude ($\approx$1.4 pixels at severity 3 on a 4000-pixel
+frame). Finally, we run no mitigation study: disaster-aware training
+augmentation, for which stylization-based augmentation is independent
+precedent~\cite{michaelis2019benchmarking}, is the natural next
+experiment, and the pipeline for it is released, but a rushed result would
+be worse than none for this submission.
 
 % ---------------------------------------------------------------------
 \section{Conclusion}
 % ---------------------------------------------------------------------
-\TODO{Three moves, no new numbers. Restate the gap. Restate the finding
-at its strongest. State the implication and the next step. Do not close
-on a claim of generality the study does not support.}
+
+Aerial search-and-rescue person detection is benchmarked on calm, clear
+imagery and deployed into disasters. We measure the gap directly:
+robustness across nine physically grounded, disaster-family corruptions is
+highly uneven, from a heavy-rain cost of a few points of recall to a
+low-light collapse to exactly zero recall, on both datasets and for all
+three architecturally distinct detectors, confirmed independently of any
+confidence threshold. Surviving detections stay accurately placed even as
+recall collapses, so the failure mode is a detector going blind rather
+than misplacing what it finds. Systems intended for disaster response
+should be evaluated under disaster conditions, and current detectors carry
+a specific, measurable, architecture-independent blind spot at exactly the
+low-light conditions where aerial search is most valuable and least
+substitutable by ground teams. Disaster-aware training augmentation is the
+natural mitigation and our immediate next experiment; we do not claim
+generality beyond the two datasets and three architectures evaluated here.
+
+% ---------------------------------------------------------------------
+\section{Ethical Considerations}
+% ---------------------------------------------------------------------
+
+We use only publicly available research datasets, obtained from their
+original distributors under those datasets' own terms, and collect no new
+human-subjects data. SARD consists of staged imagery in which volunteers
+simulate lost or injured persons; HERIDAL contains aerial imagery of
+people in wilderness terrain. We add no new imagery and no new annotations
+of people, and annotate no identity, biometric, or demographic attribute:
+persons appear only as generic bounding boxes inherited from the source
+datasets. We redistribute no imagery. Because every corruption is
+deterministically seeded, the corrupted benchmark regenerates exactly from
+the clean datasets, so reproduction requires only the released code and
+the original datasets under their own licenses.
 
 {\small
 \bibliographystyle{ieee_fullname}
