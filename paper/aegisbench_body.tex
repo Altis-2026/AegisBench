@@ -634,6 +634,19 @@ lockstep with frozen-threshold recall. If this were a calibration
 artifact, mAP would stay high while recall fell; it does not, so the
 detections are absent rather than merely below threshold.
 
+As an independent check outside our synthetic pipeline entirely, we ran
+the SARD-trained YOLOv11 model, unmodified, on 40 real nighttime images
+from VisDrone~\cite{zhu2021visdrone}, an unrelated aerial-imagery
+benchmark, selected as the lowest-luminance images in its test split and
+manually confirmed to depict genuine dusk or night scenes. Recall against
+VisDrone's own person annotations was 0.016 (2 of 128 ground-truth boxes
+recovered), comparable to our synthetic severity 1 and close to the
+severity 3 collapse. This is a small, uncontrolled sample from a different
+capture domain (lit urban scenes rather than SAR wilderness terrain), not
+a substitute for systematic real-condition validation, but it is
+independent evidence that the collapse we report is not an artifact of
+our corruption pipeline.
+
 Two claims are safe across both datasets: total collapse by severity 3
 replicates for all three architectures, and Faster R-CNN is consistently
 the most robust of the three at low light, on both datasets, at every
@@ -743,9 +756,12 @@ shared by the corruption-robustness methodology broadly and not unique to
 this benchmark. This is what makes controlled, per-condition attribution
 possible at all, since disaster imagery rarely comes with a matched clean
 counterpart of the same scene, but it is also the benchmark's ceiling: it
-measures response to modeled optics, not to live disaster footage, and
-validating against real adverse-condition imagery is a natural next step.
-We train one seed per
+measures response to modeled optics, not to live disaster footage; a
+small spot check against real night imagery (Section~\ref{sec:results})
+is suggestive but not a substitute for systematic validation against real
+adverse-condition SAR footage, which remains a natural next step, made
+harder by how rarely such footage is collected and released. We train one
+seed per
 model per dataset; our bootstrap intervals quantify variance from which
 images are in the test set, not from training. We evaluate two datasets
 and three detectors, prioritizing methodological depth, physically
