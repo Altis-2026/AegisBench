@@ -331,7 +331,7 @@ effect.
 pixel-unit generation parameters (blur kernel length, streak length, bloom
 sigma, ripple amplitude) are specified per 1000 pixels of the longer image
 side and scaled at runtime, so severity 2 means the same thing on a
-$4000\times3000$ HERIDAL frame and a $1920\times1080$ SARD frame.
+$4000\times3000$ HERIDAL frame and a $640\times640$ SARD frame.
 Corruptions are appearance-only: they recolor, darken, haze, or overlay the
 existing pixel grid without moving object content, so clean ground-truth
 boxes remain exactly valid on corrupted images. The one exception is
@@ -365,18 +365,22 @@ per ground-truth box, so no architecture is scored by a bespoke framework
 metric.
 
 \paragraph{Tiling and full-image evaluation.} Both datasets are processed
-with the same overlapping-tile pipeline: 1024-pixel tiles with 256 pixels
-of overlap. A $4000\times3000$ HERIDAL frame yields 20 tiles and a
-$1920\times1080$ SARD frame yields 6. Detection runs independently per
-tile, predicted boxes are mapped back into full-image coordinates, and
-overlapping predictions are merged with class-agnostic non-maximum
-suppression, so evaluation is always performed against the original
-full-resolution ground truth rather than against individual tiles.
-Applying one inference protocol to both datasets removes tiling itself as
-a confound when comparing degradation across capture regimes. At
-evaluation time, corruptions are applied to the full frame before tiling,
-since atmospheric structure such as haze gradients and flood masks is
-spatially coherent across a whole scene.
+with the same tiling pipeline (1024-pixel tiles, 256-pixel overlap),
+applied uniformly regardless of native resolution. A $4000\times3000$
+HERIDAL frame exceeds the tile size and is split into 20 overlapping
+tiles; each of SARD's $640\times640$ frames is smaller than the tile size
+and is therefore passed through as a single full-frame tile. Detection
+runs independently per tile, predicted boxes are mapped back into
+full-image coordinates, and overlapping predictions are merged with
+class-agnostic non-maximum suppression, so evaluation is always performed
+against the original full-resolution ground truth rather than against
+individual tiles. Applying one inference protocol, rather than a
+hand-tuned one per dataset, removes an experimenter degree of freedom when
+comparing degradation across capture regimes, though the resulting tiling
+behavior itself differs by native resolution: HERIDAL frames are genuinely
+tiled, SARD frames are not. At evaluation time, corruptions are applied to
+the full frame before tiling, since atmospheric structure such as haze
+gradients and flood masks is spatially coherent across a whole scene.
 
 \paragraph{Relative performance drop.} Degradation is reported relative to
 each model's own clean score, $\mathrm{rPD} = (\text{clean} -
@@ -423,12 +427,15 @@ cluster.
 HERIDAL uses its official test split of 101 images untouched, with a
 validation split carved deterministically from the official train split
 (1391 train, 155 validation images, measured from our prepared records).
-We use a Roboflow re-export of SARD that applies data augmentation to each
-of the dataset's 1,981 source frames, yielding 5,755 augmented images
-total; SARD frames originate from video, so consecutive frames, and
-augmented copies of the same source frame, are near-duplicates. Splitting
-is group-aware, assigning every image derived from the same source frame
-to exactly one of train, validation, or test by filename-derived group
+We use a Roboflow re-export of SARD, resized to $640\times640$; its
+documented preprocessing applies no augmentation, only auto-orientation
+and the resize, yet the export contains 5,755 images against SARD's
+documented 1,981 source frames, indicating duplicate or near-duplicate
+uploads of the same underlying frames in this mirror. SARD frames
+originate from video, so consecutive frames, and any duplicate copies of
+the same source frame, are near-duplicates. Splitting is group-aware,
+assigning every image derived from the same source frame to exactly one of
+train, validation, or test by filename-derived group
 identity, with the split tooling refusing degenerate groupings. We
 verified directly that no source frame's images appear in more than one
 split. SARD's test split used here contains 862 images (4033 train, 860
