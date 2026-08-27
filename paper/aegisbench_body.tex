@@ -432,14 +432,15 @@ validation split carved deterministically from the official train split
 We use a Roboflow re-export of SARD, resized to $640\times640$; its
 documented preprocessing applies no augmentation, only auto-orientation
 and the resize, yet the export contains 5,755 images against SARD's
-documented 1,981 source frames, indicating duplicate or near-duplicate
-uploads of the same underlying frames in this mirror. SARD frames
-originate from video, so consecutive frames, and any duplicate copies of
-the same source frame, are near-duplicates. Splitting is group-aware,
-assigning every image derived from the same source frame to exactly one of
-train, validation, or test by filename-derived group
-identity, with the split tooling refusing degenerate groupings. We
-verified directly that no source frame's images appear in more than one
+documented 1,981 source frames. Spot-checking colliding filenames shows
+these are distinct frames, with different pixel content and different
+annotations, that share a filename token, consistent with frame-counter
+reuse across the mirror's upload history rather than duplicated or
+augmented content. SARD frames originate from video, so temporally
+adjacent frames are near-duplicates; splitting is group-aware, assigning
+every image sharing a filename token to exactly one of train, validation,
+or test, with the split tooling refusing degenerate groupings. We verified
+directly that no filename-token group's images appear in more than one
 split. SARD's test split used here contains 862 images (4033 train, 860
 validation).
 
