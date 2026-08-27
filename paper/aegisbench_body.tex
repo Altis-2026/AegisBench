@@ -25,11 +25,13 @@ architecturally distinct detectors, a two-stage CNN, a single-stage CNN, and
 a transformer detector, across 168 conditions on two datasets covering the
 high-altitude and low-altitude capture regimes, scoring every model with one
 shared evaluator at operating points frozen on clean validation data.
-Robustness is highly uneven across conditions: heavy rain costs only about
-3.6 points of recall at the highest severity, while low light produces
-complete detection collapse, recall reaching exactly zero for all three
-architectures on both datasets, and every one of 1,000 bootstrap resamples
-of the test set agrees, so the confidence interval is degenerate at zero. A
+Robustness is highly uneven, and unevenly so even for the same corruption
+across datasets: heavy rain costs only about 3.6 points of recall at the
+highest severity on SARD but drives recall to near zero on HERIDAL, while
+low light is universal, producing complete detection collapse, recall
+reaching exactly zero for all three architectures on both datasets, and
+every one of 1,000 bootstrap resamples of the test set agrees, so the
+confidence interval is degenerate at zero. A
 localization-stability analysis shows that surviving detections remain
 accurately placed, indicating that corruption causes missed detections
 rather than positional drift. We release the benchmark, the corruption
@@ -76,12 +78,14 @@ and frozen across all corrupted conditions, matching how a system would
 actually be deployed rather than measuring a best case unavailable in the
 field.
 
-The results show that robustness is highly uneven across conditions. Heavy
-rain, at its most severe, costs a detector only a few points of recall.
-Low light, in contrast, drives recall to exactly zero, with bootstrap
-confidence intervals degenerate at $[0.000, 0.000]$, on both datasets and
-for all three architectures, a collapse confirmed independently of any
-confidence threshold by mAP. A second robustness axis, localization
+The results show that robustness is highly uneven across conditions, and
+unevenly so even for a single corruption across datasets. Heavy rain, at
+its most severe, costs a detector only a few points of recall on SARD but
+drives recall to near zero on HERIDAL. Low light is worse still and
+universal: it drives recall to exactly zero, with bootstrap confidence
+intervals degenerate at $[0.000, 0.000]$, on both datasets and for all
+three architectures, a collapse confirmed independently of any confidence
+threshold by mAP. A second robustness axis, localization
 stability, shows that the detections a model does retain stay accurately
 placed even as recall collapses: the dominant failure mode is a detector
 ceasing to find a person, not finding one and misplacing the box.
@@ -753,10 +757,11 @@ be worse than none for this submission.
 Aerial search-and-rescue person detection is benchmarked on calm, clear
 imagery and deployed into disasters. We measure the gap directly:
 robustness across nine physically grounded, disaster-family corruptions is
-highly uneven, from a heavy-rain cost of a few points of recall to a
-low-light collapse to exactly zero recall, on both datasets and for all
-three architecturally distinct detectors, confirmed independently of any
-confidence threshold. Surviving detections stay accurately placed even as
+highly uneven, and unevenly so even for the same corruption across
+datasets: heavy rain costs a few points of recall on SARD but nearly all
+of it on HERIDAL, while low light collapses recall to exactly zero on both
+datasets and for all three architecturally distinct detectors, confirmed
+independently of any confidence threshold. Surviving detections stay accurately placed even as
 recall collapses, so the failure mode is a detector going blind rather
 than misplacing what it finds. Systems intended for disaster response
 should be evaluated under disaster conditions, and current detectors carry
