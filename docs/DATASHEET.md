@@ -75,13 +75,15 @@ row where applicable, and an archived prediction file.
 
 **What underlying imagery does evaluation run on?**
 
-| Dataset | Regime | Resolution | Test split used |
-| --- | --- | --- | --- |
-| HERIDAL | High-altitude orthophoto search imagery | ~4000x3000 | 101 labeled full-size images |
-| SARD | Lower-altitude drone video frames | 1920x1080 | 862 frames |
+| Dataset | Regime | Resolution | Train | Val | Test |
+| --- | --- | --- | --- | --- | --- |
+| HERIDAL | High-altitude orthophoto search imagery | ~4000x3000 | 1391 | 155 | 101 |
+| SARD | Lower-altitude drone video frames | 1920x1080 | 4033 | 860 | 862 |
 
-**[VERIFY]** Confirm both counts against your own downloaded copies and
-report the numbers you measured, never numbers quoted from elsewhere.
+Counts measured directly from the prepared record files
+(`data/heridal/records/*.json`, `data/sard/records/*.json`) on 27 August
+2026; the test-split counts match the values already used throughout the
+paper and this datasheet.
 
 **Is any information missing?**
 The corrupted images themselves are not distributed (see above). Ground
