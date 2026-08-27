@@ -421,13 +421,17 @@ worth stating since it shows the benchmark is reproducible without a
 cluster.
 
 HERIDAL uses its official test split of 101 images untouched, with a
-validation split carved deterministically as 15\% of the official train
-split (1391 train, 155 validation images, measured from our prepared
-records). SARD frames originate from video, so consecutive frames are
-near-duplicates; splitting is group-aware, assigning an entire video
-sequence to exactly one of train, validation, or test by filename-derived
-group identity, with the split tooling refusing degenerate groupings.
-SARD's official test split used here contains 862 frames (4033 train, 860
+validation split carved deterministically from the official train split
+(1391 train, 155 validation images, measured from our prepared records).
+We use a Roboflow re-export of SARD that applies data augmentation to each
+of the dataset's 1,981 source frames, yielding 5,755 augmented images
+total; SARD frames originate from video, so consecutive frames, and
+augmented copies of the same source frame, are near-duplicates. Splitting
+is group-aware, assigning every image derived from the same source frame
+to exactly one of train, validation, or test by filename-derived group
+identity, with the split tooling refusing degenerate groupings. We
+verified directly that no source frame's images appear in more than one
+split. SARD's test split used here contains 862 images (4033 train, 860
 validation).
 
 \begin{table}[t]
