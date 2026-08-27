@@ -167,9 +167,11 @@ rather than nine, and objects generally rather than search-and-rescue
 persons specifically. WRRT-DETR~\cite{liu2025wrrtdetr} builds a
 weather-robust RT-DETR variant around AWOD, a maritime dataset of imagery
 captured under fog, flare, and low-light conditions. Each of these targets
-a different task, a narrower corruption scope, or a different domain than
-the disaster-grounded, person-specific, nine-corruption sweep presented
-here.
+a different task, a narrower corruption scope, or a different domain; none
+combines physically grounded, disaster-specific corruption modeling with a
+localization-stability axis that separates a detection lost entirely from
+one that survives but drifts, which is what this benchmark adds beyond
+breadth of coverage.
 
 \subsection{Adverse Weather and Low-Light Vision}
 
@@ -735,12 +737,14 @@ benchmark. Every detection is lost even at this mildest severity.}
 
 Our corruptions are synthetic, applied to real imagery, following the
 ImageNet-C and Foggy Cityscapes
-lineage~\cite{hendrycks2019imagenetc,sakaridis2018foggy}. This is what
-makes controlled, per-condition attribution possible at all, since
-disaster imagery rarely comes with a matched clean counterpart of the same
-scene, but it is also the benchmark's ceiling: it measures response to
-modeled optics, not to live disaster footage, and validating against real
-adverse-condition imagery is a natural next step. We train one seed per
+lineage~\cite{hendrycks2019imagenetc,sakaridis2018foggy}, a limitation
+shared by the corruption-robustness methodology broadly and not unique to
+this benchmark. This is what makes controlled, per-condition attribution
+possible at all, since disaster imagery rarely comes with a matched clean
+counterpart of the same scene, but it is also the benchmark's ceiling: it
+measures response to modeled optics, not to live disaster footage, and
+validating against real adverse-condition imagery is a natural next step.
+We train one seed per
 model per dataset; our bootstrap intervals quantify variance from which
 images are in the test set, not from training. We evaluate two datasets
 and three detectors, prioritizing methodological depth, physically
@@ -755,11 +759,12 @@ audit. Monotonicity is verified on a fixed random 20-image subset by its
 mean, not per image, since the corruptions are stochastic.
 \texttt{inundation}'s ripple leaves ground-truth boxes unwarped, with
 negligible amplitude ($\approx$1.4 pixels at severity 3 on a 4000-pixel
-frame). Finally, we run no mitigation study: disaster-aware training
-augmentation, for which stylization-based augmentation is independent
-precedent~\cite{michaelis2019benchmarking}, is the natural next
-experiment, and the pipeline for it is released, but a rushed result would
-be worse than none for this submission.
+frame). Finally, we run no mitigation study. Disaster-aware training
+augmentation, targeted first at the low-light collapse identified here, is
+the natural next experiment, for which stylization-based augmentation is
+independent precedent~\cite{michaelis2019benchmarking}; the pipeline for
+it is released, but a rushed result before this submission's deadline
+would be worse than none.
 
 % ---------------------------------------------------------------------
 \section{Conclusion}
