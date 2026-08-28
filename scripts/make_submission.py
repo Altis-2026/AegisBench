@@ -13,6 +13,7 @@ are git-ignored working-tree artifacts and are copied in explicitly.
 """
 
 import argparse
+import re
 import shutil
 import subprocess
 import sys
@@ -142,8 +143,20 @@ Every number in the paper traces to a row in one of these files.
 """
 
 
+_FINDING_RE = re.compile(r"^  (\S+):\d+: ")
+
+
 def run_anonymization_scan(root: Path) -> int:
-    """Returns the finding count; -1 if the scanner could not run."""
+    """Returns the BLOCKING finding count; -1 if the scanner could not run.
+
+    The scanner walks the whole repo, including docs/PAPER_GUIDE.md and the
+    other internal working documents in EXCLUDE_FROM_CODE that never ship
+    (see export_code). A hit inside one of those files is real text on
+    disk, but not a leak into anything a reviewer will see, so it does not
+    block the build; it is still printed, just labeled, so nothing is
+    silently hidden. A hit anywhere else still blocks the build exactly as
+    before.
+    """
     try:
         proc = subprocess.run(
             [sys.executable, "-m", "aegisbench.anonymize", "--root", str(root)],
@@ -152,14 +165,31 @@ def run_anonymization_scan(root: Path) -> int:
     except Exception as exc:
         print(f"  could not run the scanner: {exc}")
         return -1
+
     out = (proc.stdout or "") + (proc.stderr or "")
-    print(out.rstrip())
+    if "anonymization scan: CLEAN" in out:
+        print(out.rstrip())
+        return 0
+
+    if not any(_FINDING_RE.match(line) for line in out.splitlines()):
+        # The scanner produced output but no line matched the expected
+        # "  path:line: message" format, so this isn't a normal
+        # clean/findings report -- treat it as a scanner failure rather
+        # than silently returning 0.
+        print(out.rstrip())
+        return -1
+
+    blocking = 0
     for line in out.splitlines():
-        if "finding" in line:
-            for tok in line.split():
-                if tok.isdigit():
-                    return int(tok)
-    return 0 if proc.returncode == 0 else -1
+        m = _FINDING_RE.match(line)
+        if m and m.group(1) in EXCLUDE_FROM_CODE:
+            print(f"{line}  [expected: this file is never shipped]")
+        else:
+            print(line)
+            if m:
+                blocking += 1
+    print(f"  {blocking} blocking finding(s) outside the excluded docs")
+    return blocking
 
 
 def export_code(root: Path, dest: Path) -> None:
