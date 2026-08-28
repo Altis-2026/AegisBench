@@ -6,9 +6,9 @@ Evaluations and Datasets guidelines, which expect this kind of structured
 documentation. Include this file (as PDF or Markdown) in the supplementary
 archive.
 
-Fields marked **[VERIFY]** must be filled or confirmed by the authors
-before submission. Do not submit this file with any `[VERIFY]` marker left
-in place.
+Fields that identify the authors or their institution are marked *withheld
+for anonymous review* and will be completed for the camera-ready version.
+Every other field is answered.
 
 ---
 
@@ -52,9 +52,8 @@ conditions of the disasters that trigger those deployments, and which
 specific conditions break which detector architectures.
 
 **Who created it and who funded it?**
-**[VERIFY]** Authors and funding sources. Leave blank in the anonymized
-review copy; fill in for the camera-ready. Do not name a grant ID in the
-double-blind version, since grant IDs are identifying.
+*Withheld for anonymous review.* Authors, affiliation, and any funding
+sources will be named in the camera-ready version.
 
 ---
 
@@ -78,12 +77,26 @@ row where applicable, and an archived prediction file.
 | Dataset | Regime | Resolution | Train | Val | Test |
 | --- | --- | --- | --- | --- | --- |
 | HERIDAL | High-altitude orthophoto search imagery | ~4000x3000 | 1391 | 155 | 101 |
-| SARD | Lower-altitude drone video frames | 1920x1080 | 4033 | 860 | 862 |
+| SARD | Lower-altitude drone video frames | 640x640 | 4033 | 860 | 862 |
 
 Counts measured directly from the prepared record files
 (`data/heridal/records/*.json`, `data/sard/records/*.json`) on 27 August
-2026; the test-split counts match the values already used throughout the
-paper and this datasheet.
+2026; the test-split counts match the values used throughout the paper.
+
+**A note on the SARD copy used.** We evaluate a Roboflow re-export of SARD,
+resized to 640x640. Its documented preprocessing applies no augmentation,
+only auto-orientation and the resize, yet the export contains 5,755 images
+against SARD's documented 1,981 source frames. Spot-checking colliding
+filenames shows these are distinct frames, with different pixel content and
+different annotations, that share a filename token, consistent with
+frame-counter reuse across the mirror's upload history rather than
+duplicated or augmented content. Because the group-aware split keys on that
+filename token, every image sharing a token is assigned to the same split;
+we verified directly that no filename-token group's images appear in more
+than one split. Anyone reproducing these numbers should use the same
+re-export, since the 640x640 resize changes both the tiling behaviour and
+the scale-invariant corruption parameters relative to the original
+1920x1080 release.
 
 **Is any information missing?**
 The corrupted images themselves are not distributed (see above). Ground
@@ -126,8 +139,11 @@ each dataset under every condition.
   inflate every reported number.
 
 **Were people involved in data collection compensated?**
-**[VERIFY]** This concerns the original dataset creators, not this work. If
-you state anything here, state only what the original dataset papers
+This concerns the original dataset creators rather than this work, which
+collected no new imagery. SARD's own publication describes staged imagery in
+which volunteers simulate lost or injured persons; we do not have
+independent information about how those volunteers were recruited or
+compensated, and do not speculate beyond what the source publications
 document.
 
 ---
@@ -146,10 +162,15 @@ document.
 - Detections are merged back to full-image coordinates with class-agnostic
   NMS, so evaluation is always against the original full-image ground truth
   and stays comparable to published full-image results.
-- Both datasets use the same tiling pipeline (1024 px tiles, 256 px
-  overlap): 20 tiles per HERIDAL frame, 6 per SARD frame. One inference
-  protocol across both removes it as a confound when comparing
-  degradation across capture regimes.
+- Both datasets pass through the same tiling pipeline (1024 px tiles, 256 px
+  overlap), applied uniformly regardless of native resolution. A 4000x3000
+  HERIDAL frame exceeds the tile size and yields 20 overlapping tiles; each
+  640x640 SARD frame is smaller than the tile size and is therefore passed
+  through as a single full-frame tile. Applying one inference protocol,
+  rather than a hand-tuned one per dataset, removes an experimenter degree
+  of freedom when comparing degradation across capture regimes, though the
+  resulting tiling behaviour itself differs by native resolution: HERIDAL
+  frames are genuinely tiled, SARD frames are not.
 
 **Is the raw data available?**
 Yes, from the original distributors. AegisBench modifies nothing about the
@@ -163,7 +184,13 @@ source annotations.
 The evaluation reported in the accompanying paper: a 168-condition
 robustness sweep across three architecturally distinct detectors and two
 datasets, with bootstrap confidence intervals and a localization-stability
-analysis.
+analysis. The paper additionally reports a small out-of-domain spot check,
+in which the SARD-trained YOLOv11 model was run unmodified on 40 real
+nighttime images from VisDrone (held out from all training, calibration,
+and threshold selection) to test whether the low-light collapse survives
+contact with real degraded-light imagery. That check is a sanity test on
+40 images from a different capture domain, not part of the benchmark
+itself, and no VisDrone imagery is redistributed here.
 
 **What other tasks could it be used for?**
 Evaluating any aerial person detector under the same conditions; ablating
@@ -194,9 +221,10 @@ released as a public repository under the MIT License. Source imagery is
 **not** redistributed; users obtain HERIDAL and SARD directly from their
 original distributors under those datasets' own terms.
 
-**[VERIFY]** For the anonymized review copy, host the code archive
-anonymously (an anonymous repository service, or bundled in the
-supplementary ZIP) and do not link a repository that identifies the authors.
+For anonymous review, the complete code archive is bundled in this
+supplementary ZIP under `code/` rather than linked to a repository that
+would identify the authors. A public repository link will be provided in
+the camera-ready version.
 
 **What license applies?**
 The AegisBench code, configuration, and results are MIT licensed. HERIDAL
@@ -212,18 +240,18 @@ rights over that imagery and redistributes none of it.
 ## Maintenance
 
 **Who will maintain it?**
-**[VERIFY]** Name the maintaining author or lab for the camera-ready. Leave
-anonymous for review.
+*Withheld for anonymous review.* The maintaining author will be named in the
+camera-ready version.
 
 **How can the maintainer be contacted?**
-**[VERIFY]** Contact address for the camera-ready. Omit for review.
+*Withheld for anonymous review.* A contact address will be provided in the
+camera-ready version.
 
 **Will it be updated?**
-**[VERIFY]** State your intent honestly. A reasonable and defensible
-commitment: the repository will receive corrections and compatibility fixes,
-and any change to `configs/corruptions.yaml` will be released under a new
-version tag, since the corruption parameter table defines benchmark identity
-and silently changing it would invalidate comparisons against published
+The repository will receive corrections and compatibility fixes. Any change
+to `configs/corruptions.yaml` will be released under a new version tag,
+since the corruption parameter table defines benchmark identity and
+silently changing it would invalidate comparisons against published
 numbers.
 
 **How will versioning work?**
@@ -239,10 +267,12 @@ traced to the exact code and parameter table that produced it.
 No new human-subjects data was collected for this work, and no identity,
 biometric, or demographic attributes are annotated, inferred, or released.
 Persons appear only as generic `person` bounding boxes inherited from the
-source datasets. **[VERIFY]** State in the paper that you use only publicly
-available research datasets under their original terms, and confirm whether
-your institution requires an ethics determination for secondary use of such
-data.
+source datasets. The paper's Ethical Considerations section states that we
+use only publicly available research datasets, obtained from their original
+distributors under those datasets' own terms. Whether an institutional
+ethics determination is required for secondary use of such data varies by
+institution; the authors will confirm their own institution's position for
+the camera-ready version.
 
 **Foreseeable harms.** The clearest risk is misplaced confidence: a
 practitioner could read strong clear-weather numbers as evidence that a

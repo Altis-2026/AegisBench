@@ -36,8 +36,13 @@ data/heridal/
 
 * Source: IEEE DataPort, "Search and Rescue Image Dataset for Person
   Detection" (Sambolek & Ivasic-Kos). Free with IEEE account.
-* Content: 1920x1080 frames extracted from video of actors simulating
-  injured/lost persons across terrains; PASCAL-VOC XML annotations.
+* Content: frames extracted from video of actors simulating injured/lost
+  persons across terrains; PASCAL-VOC XML annotations. The original release
+  is 1920x1080; **the copy evaluated in the paper is a Roboflow re-export
+  resized to 640x640** (no augmentation, only auto-orientation and the
+  resize). That resize changes both the tiling behaviour and the
+  scale-invariant corruption parameters, so reproducing the reported numbers
+  requires the same re-export, not the original release.
 * Layout:
 
 ```
@@ -54,9 +59,12 @@ data/sard/
   the actual filenames in your copy and adjust `--group-regex` if needed.
   This is the difference between a defensible benchmark and silently
   inflated numbers.
-* SARD frames go through the same tiling pipeline as HERIDAL. At
-  tile 1024 / overlap 256 a 1920x1080 frame yields 6 tiles (a 4000x3000
-  HERIDAL frame yields 20). Detections merge back to full-image
+* SARD frames go through the same tiling pipeline as HERIDAL, applied
+  uniformly regardless of native resolution. At tile 1024 / overlap 256 a
+  4000x3000 HERIDAL frame yields 20 overlapping tiles, while a 640x640 SARD
+  frame is smaller than the tile size and passes through as a single
+  full-frame tile (`tile_starts()` returns a single origin when the image
+  is smaller than the tile). Detections merge back to full-image
   coordinates either way, so evaluation is always against the original
   full-image ground truth.
 

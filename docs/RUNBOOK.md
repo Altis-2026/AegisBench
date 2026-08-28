@@ -79,8 +79,9 @@ image and writes tile overlays (green = fully contained, yellow = clipped
 edge copy). Zero containment violations expected; if the report lists
 any, the overlap is smaller than some person box — bump `--overlap`.
 
-SARD frames are 1920x1080 and go through the same tiler, yielding 6
-tiles per frame at tile 1024 / overlap 256.
+SARD frames (640x640 in the Roboflow re-export evaluated here) go through
+the same tiler, but are smaller than the 1024 px tile size, so each frame
+passes through as a single full-frame tile rather than being split.
 
 ## Phase 3 — corruption engine
 

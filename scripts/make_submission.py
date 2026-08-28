@@ -35,7 +35,14 @@ RESULT_FILES = [
     ("results/phase3/calibration.csv", "results/calibration.csv"),
 ]
 
+# phase5_figures.py writes wherever --out points; both results/figures (the
+# path used for the submitted figures) and results/sweep (the older default)
+# are searched so a run from either layout produces a complete archive.
+# PDFs are the vector originals used in the paper; PNGs are for quick
+# viewing. Both ship.
 FIGURE_GLOBS = [
+    ("results/figures/*.pdf", "figures"),
+    ("results/figures/*.png", "figures"),
     ("results/sweep/heatmap_*.png", "figures"),
     ("results/sweep/severity_*.png", "figures"),
     ("results/sweep/decoupling_*.png", "figures"),
@@ -50,9 +57,22 @@ DOCS = [
     ("docs/DATA.md", "DATA.md"),
 ]
 
-# docs/PAPER_GUIDE.md is deliberately excluded: it is an internal working
-# document that discusses the submission itself and names the repository.
-EXCLUDE_FROM_CODE = ("docs/PAPER_GUIDE.md", "docs/SUBMISSION.md")
+# Internal working documents, excluded from the shipped code tree. These are
+# drafting aids, not artifacts a reviewer should receive: PAPER_GUIDE names
+# the repository (and so the authors), SUBMISSION discusses the submission
+# process itself, and HANDOFF / DRAFT_REVIEW / WRITING_PACK / FIGURES are
+# authoring notes carrying [FILL] markers, deadline strategy, and
+# section-by-section drafting instructions. The four polished docs
+# (DATASHEET, RUNBOOK, CORRUPTIONS, DATA) ship at the archive root instead,
+# via DOCS above.
+EXCLUDE_FROM_CODE = (
+    "docs/PAPER_GUIDE.md",
+    "docs/SUBMISSION.md",
+    "docs/HANDOFF.md",
+    "docs/DRAFT_REVIEW.md",
+    "docs/WRITING_PACK.md",
+    "docs/FIGURES.md",
+)
 
 README = """# AegisBench: supplementary material
 
@@ -69,8 +89,15 @@ disaster-grounded visual corruption.
 | `RUNBOOK.md` | The phased experimental protocol with per-phase verification checkpoints |
 | `DATA.md` | How to obtain the source datasets, expected layouts, split policy |
 | `code/` | Complete source: corruption engine, tiling pipeline, shared evaluator, detector wrappers, phase scripts, tests |
-| `results/` | Every measurement reported in the paper, plus the full sweep table |
-| `figures/` | Robustness heatmaps, severity curves, decoupling scatters, qualitative failure gallery |
+| `results/` | Every measurement reported in the paper, plus the full 168-condition sweep table |
+| `figures/` | Robustness heatmaps, severity curves, decoupling scatters, the corruption taxonomy panel, and the qualitative failure gallery (`figures/gallery/`) |
+
+## License
+
+The AegisBench code, configuration, and results in this archive are released
+under the MIT License. HERIDAL and SARD remain governed by their own
+licenses, which this project neither alters nor sublicenses, and no imagery
+from either is redistributed here.
 
 ## What is deliberately not here
 

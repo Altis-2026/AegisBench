@@ -57,7 +57,7 @@ across flood, wildfire, storm, and earthquake response.
 All pixel-unit parameters (blur kernel, streak length, bloom sigma, ripple
 amplitude) are specified per 1000 px of the longer image side and scaled at
 runtime, so severity means the same thing on a 4000x3000 HERIDAL frame and
-a 1920x1080 SARD frame.
+a 640x640 SARD frame.
 
 ## Ground-truth / pixel alignment
 

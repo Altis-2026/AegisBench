@@ -91,7 +91,7 @@ Full design rationale and physical grounding: [`docs/CORRUPTIONS.md`](docs/CORRU
 
 Every pixel-unit parameter is specified per 1000 px of image size and scaled
 at runtime, so a given severity means the same thing on a 4000x3000 HERIDAL
-frame and a 1920x1080 SARD frame. All corruptions are appearance-only
+frame and a 640x640 SARD frame. All corruptions are appearance-only
 (they recolor, darken, or occlude without moving content), so ground-truth
 boxes drawn on the clean image remain valid on the corrupted one.
 
@@ -241,7 +241,8 @@ capture regimes:
 - **[HERIDAL](docs/DATA.md#heridal)**: high-altitude orthophoto search
   imagery (~4000x3000), 101 official test images.
 - **[SARD](docs/DATA.md#sard)**: lower-altitude drone video frames
-  (1920x1080), split by video sequence to prevent near-duplicate leakage.
+  (a Roboflow re-export resized to 640x640), split group-aware by filename
+  token to prevent near-duplicate leakage.
 
 Neither dataset is redistributed by this repository; both require manual
 download under their own licenses. See [`docs/DATA.md`](docs/DATA.md) for
