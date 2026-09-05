@@ -1,0 +1,20 @@
+# RT-DETR mitigation arm on SARD. Same protocol as the YOLOv11 arm:
+# fine-tune the clean run on low_light severity 1-2 tiles, re-evaluate at
+# severity 3. See configs/train_yolo11_sard_aug_lowlight.yaml for why
+# severity 3 is held out and why this continues from best.pt.
+#
+# lr0 is one tenth of the clean run's 0.0001, matching the same 10x
+# reduction the YOLOv11 arm applies for a fine-tune.
+kind: rtdetr
+run_name: rtdetr_sard_aug_lowlight
+base_weights: runs/rtdetr/rtdetr_sard_clean/weights/best.pt
+data_yaml: data/sard/tiles_aug_lowlight_s12/dataset.yaml
+epochs: 20
+imgsz: 1024
+batch: 2
+seed: 17
+amp: true
+optimizer: auto
+lr0: 0.00001
+patience: 8
+workers: 4

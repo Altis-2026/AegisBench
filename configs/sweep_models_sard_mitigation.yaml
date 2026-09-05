@@ -1,0 +1,25 @@
+# The three SARD mitigation arms entering the re-sweep. `name` is the
+# identity label written into the CSV and prediction filenames, so these
+# rows cannot collide with the clean baselines already in master_ci.csv.
+#
+# Pair with:
+#   python scripts/phase5_sweep.py --models configs/sweep_models_sard_mitigation.yaml \
+#       --records data/sard/records --dataset sard
+#
+# The frozen operating points stay the ones selected on CLEAN validation
+# data for the clean runs (0.30 yolo11, 0.60 rtdetr, 0.96 fasterrcnn).
+# Re-tuning thresholds on the mitigated models would confound the
+# augmentation's effect with a threshold change, and the paper's whole
+# protocol is that the threshold is fixed before deployment.
+- kind: yolo11
+  name: yolo11_aug_lowlight
+  weights: runs/yolo11/yolo11_sard_aug_lowlight/weights/best.pt
+  imgsz: 1024
+- kind: rtdetr
+  name: rtdetr_aug_lowlight
+  weights: runs/rtdetr/rtdetr_sard_aug_lowlight/weights/best.pt
+  imgsz: 1024
+- kind: fasterrcnn
+  name: fasterrcnn_aug_lowlight
+  weights: runs/fasterrcnn/fasterrcnn_sard_aug_lowlight_best.pt
+  imgsz: 1024

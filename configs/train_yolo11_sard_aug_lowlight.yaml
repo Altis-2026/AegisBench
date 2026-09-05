@@ -1,0 +1,33 @@
+# YOLOv11 mitigation arm: fine-tune the CLEAN SARD run on tiles augmented
+# with low_light at severities 1-2 only. Severity 3 is deliberately held
+# out of training so the re-eval at severity 3 measures generalization to
+# an unseen severity, not recall of a condition the model was trained on.
+#
+# base_weights is the clean run's best.pt, not yolo11m.pt: this is a
+# fine-tune continuing from the paper's baseline, so the before/after
+# delta isolates the augmentation rather than confounding it with a
+# fresh 80-epoch training run.
+#
+# epochs: 20, not 80. A short fine-tune from a converged checkpoint;
+# patience 8 stops it earlier if val F1 plateaus. Budget roughly a
+# quarter of the clean run's wall time.
+#
+# amp/batch: matches configs/train_yolo11_sard.yaml (the clean run this
+# continues from). If the AcceleratorError CUDA crashes recur on the
+# Blackwell build, drop to amp: false and batch: 2, which is what
+# train_yolo11_heridal_aug_lowlight.yaml documents as the stable
+# fallback; note that changing batch changes the effective LR schedule,
+# so record which setting produced the reported number.
+kind: yolo11
+run_name: yolo11_sard_aug_lowlight
+base_weights: runs/yolo11/yolo11_sard_clean/weights/best.pt
+data_yaml: data/sard/tiles_aug_lowlight_s12/dataset.yaml
+epochs: 20
+imgsz: 1024
+batch: 4
+seed: 17
+amp: true
+optimizer: auto
+lr0: 0.001
+patience: 8
+workers: 4

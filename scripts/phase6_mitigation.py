@@ -5,7 +5,13 @@ Strategy: pre-generate corrupted variants of the TRAIN tiles (deterministic,
 seeded per tile) so any trainer consumes them unmodified. Per source tile we
 keep the clean copy and add `variants` corrupted copies, each with a
 corruption drawn from the strategy's pool and a severity drawn uniformly
-from {1,2,3}.
+from --severities (default {1,2,3}).
+
+Hold the evaluation severity out of training. Training on severity 1-2
+and re-evaluating at severity 3 measures whether the augmentation
+generalizes to a condition it never saw; training on all three and
+re-evaluating at severity 3 measures recall of a seen condition, which
+is a much weaker claim.
 
 Ablation arms (--strategy):
   all        pool = every corruption          (the full mitigation)
@@ -18,6 +24,13 @@ before/after delta per corruption is the mitigation result.
 
   python scripts/phase6_mitigation.py --tiles data/heridal/tiles \
       --out data/heridal/tiles_aug_all --strategy all --variants 1
+
+The GRSL mitigation arm, targeting the low-light collapse on SARD and
+holding severity 3 out of training:
+
+  python scripts/phase6_mitigation.py --tiles data/sard/tiles \
+      --out data/sard/tiles_aug_lowlight_s12 \
+      --strategy worst:low_light --severities 1,2 --variants 1
 """
 
 import argparse
@@ -43,7 +56,19 @@ def main() -> int:
     ap.add_argument("--strategy", default="all")
     ap.add_argument("--variants", type=int, default=1)
     ap.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
+    ap.add_argument("--severities", default=",".join(str(s) for s in SEVERITIES),
+                    help="comma-separated severities to draw from, e.g. '1,2' "
+                         "to hold severity 3 out of training so the re-eval "
+                         "at severity 3 measures generalization rather than "
+                         "recall of a seen condition")
     args = ap.parse_args()
+
+    severities = [int(s) for s in args.severities.split(",") if s.strip()]
+    unknown = sorted(set(severities) - set(SEVERITIES))
+    if unknown:
+        raise SystemExit(f"unknown severities {unknown}, allowed {list(SEVERITIES)}")
+    if not severities:
+        raise SystemExit("empty severity pool")
 
     suite = CorruptionSuite(args.config)
     if args.strategy == "all":
@@ -57,7 +82,7 @@ def main() -> int:
         raise SystemExit(f"unknown strategy {args.strategy}")
     if not pool:
         raise SystemExit("empty corruption pool")
-    print(f"strategy={args.strategy} pool={pool}")
+    print(f"strategy={args.strategy} pool={pool} severities={severities}")
 
     src = Path(args.tiles)
     out = Path(args.out)
@@ -85,7 +110,7 @@ def main() -> int:
             rng = rng_for(img_path.stem, f"mitigation-{args.strategy}", v,
                           global_seed=suite.global_seed)
             name = pool[int(rng.integers(len(pool)))]
-            sev = SEVERITIES[int(rng.integers(len(SEVERITIES)))]
+            sev = severities[int(rng.integers(len(severities)))]
             corrupted = suite.apply(img, name, sev,
                                     f"{img_path.stem}-aug{v}")
             stem = f"{img_path.stem}__aug{v}_{name}_s{sev}"

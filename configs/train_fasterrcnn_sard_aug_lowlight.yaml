@@ -1,0 +1,23 @@
+# Faster R-CNN mitigation arm on SARD. Same protocol as the other two
+# arms: fine-tune the clean run on low_light severity 1-2 tiles,
+# re-evaluate at severity 3.
+#
+# base_weights support in the fasterrcnn path was added for this run;
+# without it build_model() always restarts from torchvision COCO weights
+# and the arm would not be a fine-tune at all. The file it points at is
+# the plain state_dict written as <run_name>_best.pt, NOT the
+# <run_name>_last_ckpt.pt resume checkpoint; passing the latter is
+# rejected with a message saying so.
+#
+# 8 epochs against the clean run's 26, and lr0 one tenth of its 0.005.
+kind: fasterrcnn
+run_name: fasterrcnn_sard_aug_lowlight
+base_weights: runs/fasterrcnn/fasterrcnn_sard_clean_best.pt
+train_images: data/sard/tiles_aug_lowlight_s12/train/images
+train_labels: data/sard/tiles_aug_lowlight_s12/train/labels
+epochs: 8
+batch: 2
+seed: 17
+amp: true
+lr0: 0.0005
+workers: 4

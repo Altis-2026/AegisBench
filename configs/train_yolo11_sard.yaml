@@ -1,7 +1,13 @@
 # YOLOv11 fine-tune on clean SARD tiles. Same hardware budget as the
-# HERIDAL run: yolo11m at 1024 px, batch 4, AMP on. SARD frames are
-# 1920x1080, so the same 1024/256 tile/overlap pipeline as HERIDAL still
-# tiles each frame (not a no-op) -- reuse phase2_tile_dataset.py unchanged.
+# HERIDAL run: yolo11m at 1024 px, batch 4, AMP on.
+#
+# The evaluated SARD copy is a Roboflow re-export resized to 640x640, not
+# the 1920x1080 source release. 640 is smaller than the 1024 tile size, so
+# phase2_tile_dataset.py passes each frame through as a single full-frame
+# tile here; the same pipeline genuinely tiles HERIDAL's 4000x3000 frames
+# into 20. Running one protocol on both is deliberate (it removes an
+# experimenter degree of freedom when comparing the two capture regimes),
+# and the paper states the differing behaviour rather than hiding it.
 kind: yolo11
 run_name: yolo11_sard_clean
 base_weights: yolo11m.pt

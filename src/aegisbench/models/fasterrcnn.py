@@ -65,8 +65,18 @@ class YoloTileDataset:
         return img_t, target
 
 
-def build_model(num_classes: int = 2):
-    _, torchvision = _lazy_torch()
+def build_model(num_classes: int = 2, base_weights: str | Path | None = None):
+    """Detector initialised from COCO, or from one of our own checkpoints.
+
+    `base_weights` points at a best-weights file written by this module,
+    which is a plain state_dict with the two-class head already in place
+    (the inference-time contract, see _run_training_loop). Passing it is
+    what makes a mitigation fine-tune continue from the clean run rather
+    than restart from COCO. The COCO download still happens first and is
+    then overwritten, which costs one cached-file read and keeps this
+    function's shape identical in both cases.
+    """
+    torch, torchvision = _lazy_torch()
     from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn_v2(
@@ -74,6 +84,18 @@ def build_model(num_classes: int = 2):
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features,
                                                       num_classes)
+    if base_weights:
+        path = Path(base_weights)
+        if not path.is_file():
+            raise SystemExit(f"base_weights not found: {path}")
+        state = torch.load(path, map_location="cpu")
+        # Reject a full training checkpoint here rather than failing deep
+        # inside load_state_dict with an unreadable key error.
+        if isinstance(state, dict) and "model" in state and "optimizer" in state:
+            raise SystemExit(
+                f"{path} is a resume checkpoint, not a weights file; "
+                f"pass the *_best.pt written alongside it")
+        model.load_state_dict(state)
     return model
 
 
@@ -148,7 +170,7 @@ def train_from_config(config_path: str | Path, run_dir: str | Path) -> Path:
                         collate_fn=lambda b: tuple(zip(*b)),
                         generator=torch.Generator().manual_seed(cfg["seed"]))
 
-    model = build_model().to(device)
+    model = build_model(base_weights=cfg.get("base_weights")).to(device)
     opt, sched, scaler = _build_optimizer(model, cfg)
 
     # Namespaced by run_name (like the ultralytics runs) so a second dataset
