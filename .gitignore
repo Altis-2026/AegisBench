@@ -24,3 +24,13 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# LaTeX build artifacts (paper/grsl/Makefile regenerates these)
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+paper/grsl/*.log
+paper/grsl/pg-*.png
+paper/grsl/figures/*.png
