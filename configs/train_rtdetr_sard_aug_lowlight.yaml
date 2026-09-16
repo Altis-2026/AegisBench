@@ -5,6 +5,17 @@
 #
 # lr0 is one tenth of the clean run's 0.0001, matching the same 10x
 # reduction the YOLOv11 arm applies for a fine-tune.
+#
+# amp: false -- the first attempt at this run (amp: true) went to nan in
+# giou_loss by epoch 1 and never recovered: every epoch's validation loss
+# was nan and precision/recall/mAP were exactly 0 for all 20 epochs.
+# RT-DETR's decoder is known to be less numerically stable under fp16 than
+# YOLO's head, and this matches the same AMP instability documented in
+# train_yolo11_heridal_aug_lowlight.yaml for this machine. Disabling AMP
+# is the fix there; do the same here rather than guessing at a different
+# cause. batch stays at 2 since disabling AMP increases memory use and
+# this was already the lower of the two batch sizes in this project's
+# configs.
 kind: rtdetr
 run_name: rtdetr_sard_aug_lowlight
 base_weights: runs/rtdetr/rtdetr_sard_clean/weights/best.pt
@@ -13,7 +24,7 @@ epochs: 20
 imgsz: 1024
 batch: 2
 seed: 17
-amp: true
+amp: false
 optimizer: auto
 lr0: 0.00001
 patience: 8
