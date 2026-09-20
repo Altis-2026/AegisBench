@@ -19,9 +19,22 @@ the model was trained on, which is a much weaker claim than
 generalization to an unseen severity, and a reviewer will ask which one
 it is.
 
-Thresholds stay frozen at the clean-run values (0.30 YOLOv11, 0.60
-RT-DETR, 0.96 Faster R-CNN). Re-tuning them on the mitigated models would
-confound the augmentation with a threshold change.
+Correction: an earlier version of this note claimed thresholds stay
+frozen at the clean-run values (0.30 YOLOv11, 0.60 RT-DETR, 0.96 Faster
+R-CNN). That is not what phase5_sweep.py does, and was never verified
+against the script before being written down. Checked directly: the
+sweep always calls select_operating_point() fresh, on whatever checkpoint
+it is given, using that checkpoint's own clean-validation performance,
+then freezes that value across all 28 conditions for that run. This is
+the correct protocol -- each model gets an operating point selected on
+its own clean-val data, same rule the paper states for every other
+model -- it just means the mitigated YOLOv11 checkpoint may land on a
+different threshold than 0.30, not the same one. Nothing needs to change
+in the commands below; this was a documentation error, not a pipeline
+one, and the threshold that actually gets used is the one printed at the
+top of each model's block when phase5_sweep.py runs
+("conf=X.XX (frozen for all conditions)") and is logged in the
+conf_thresh column of every result row.
 
 ## 0. Preconditions
 

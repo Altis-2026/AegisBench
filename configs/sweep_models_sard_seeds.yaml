@@ -1,0 +1,22 @@
+# Multi-seed confirmation: the three YOLOv11/SARD seeds (17, the original
+# used everywhere else in the paper, plus 42 and 123) entering their own
+# sweep. Kept out of results/sweep/master_ci.csv on purpose -- these are
+# a workshop-specific robustness check, not part of the GRSL letter's
+# reported numbers -- so point --out at results/workshop/ instead.
+#
+#   python scripts/phase5_sweep.py --models configs/sweep_models_sard_seeds.yaml \
+#       --records data/sard/records --dataset sard \
+#       --out results/workshop/master_ci_seeds.csv \
+#       --pred-dir results/workshop/preds_seeds
+- kind: yolo11
+  name: yolo11_seed17
+  weights: runs/yolo11/yolo11_sard_clean/weights/best.pt
+  imgsz: 1024
+- kind: yolo11
+  name: yolo11_seed42
+  weights: runs/yolo11/yolo11_sard_seed42/weights/best.pt
+  imgsz: 1024
+- kind: yolo11
+  name: yolo11_seed123
+  weights: runs/yolo11/yolo11_sard_seed123/weights/best.pt
+  imgsz: 1024

@@ -1,0 +1,23 @@
+# Multi-seed confirmation run: identical to train_yolo11_sard.yaml except
+# seed. Purpose is to confirm the low_light severity-3 zero-recall
+# collapse (the paper's most load-bearing single claim) is not an
+# artifact of seed 17's initialization. Trains from scratch from
+# yolo11m.pt, NOT from the seed-17 checkpoint -- reusing that checkpoint
+# would just be seed 17 fine-tuned twice more, not an independent trial.
+#
+# Kept as a separate config/output (not overwriting yolo11_sard_clean)
+# so the paper's reported seed-17 numbers are never at risk of being
+# clobbered by a rerun.
+kind: yolo11
+run_name: yolo11_sard_seed123
+base_weights: yolo11m.pt
+data_yaml: data/sard/tiles/dataset.yaml
+epochs: 80
+imgsz: 1024
+batch: 4
+seed: 123
+amp: true
+optimizer: auto
+lr0: 0.01
+patience: 20
+workers: 4
