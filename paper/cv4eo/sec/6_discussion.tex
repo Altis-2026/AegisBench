@@ -1,0 +1,115 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{What a responder can take from this.} Three findings are
+actionable without any further work. A robustness claim for an aerial
+person detector is not portable across altitude, so a number quoted from
+one capture regime should not be used to select a system for another.
+Low light is not a graded degradation for these detectors but a cliff,
+and at roughly 4.5 stops of exposure loss the systems return nothing at
+all. And because the failure is a loss of detections rather than
+mislocalisation, an empty feed under degraded conditions carries no
+information: it is indistinguishable from a correctly searched empty
+frame, so it should not be treated as coverage.
+
+\paragraph{Why per-condition reporting is the unit.} Every headline in
+this paper is invisible under averaging. The span in
+Table~\ref{tab:spectrum} runs from a 3.6-point loss to a total one
+inside one model and one severity. The rain reversal between datasets
+cancels if the two are pooled. The mitigation trade-off in
+Table~\ref{tab:tradeoff} changes sign across architectures. We therefore
+release results per condition, per model and per dataset with intervals,
+and would encourage the same shape for any robustness result intended to
+inform a deployment decision.
+
+\paragraph{Limitations.} Four bound what is claimed here. First, the
+corruptions are synthetic, applied to real imagery, following the
+ImageNet-C and Foggy Cityscapes
+lineage~\cite{hendrycks2019imagenetc,sakaridis2018foggy}; this is what
+makes controlled per-condition attribution possible, since disaster
+imagery rarely has a matched clean counterpart of the same scene, but it
+is also the ceiling of the method. Second, the VisDrone spot check is
+40 images and is suggestive rather than a substitute for systematic
+validation against real adverse-condition search-and-rescue footage,
+which is made harder by how rarely such footage is released: aerial
+disaster imagery exists for related tasks such as fire segmentation but
+not with person annotations, itself a gap this release may help motivate
+closing. Third, we evaluate two datasets and three detectors,
+prioritising depth of protocol over breadth of coverage, and the
+multi-seed confirmation covers one model on one dataset. Fourth,
+corruptions are applied one at a time, whereas a real night flood
+presents several at once; the released engine composes them, but we do
+not report the combinatorial grid and do not assume the effects are
+additive.
+
+\paragraph{Ethics and responsible release.} We use only publicly
+available research datasets under their own terms and collect no
+human-subjects data. We add no imagery and no annotations of people, and
+annotate no identity, biometric or demographic attribute; persons appear
+only as generic boxes inherited from the sources. Automated aerial
+person detection is dual-use, but this work introduces no detector, and
+its finding, that existing detectors fail under degraded conditions,
+extends no surveillance capability. The clearest risk in publishing a
+negative result about a safety-of-life system is that it reads as a
+reason to abandon the technology. It is not: in clear conditions these
+systems provide coverage ground teams cannot match. The larger risk is
+the status quo, in which robustness is reported only under clear
+conditions and an operator has no basis for knowing when the feed has
+stopped being informative.
+
+\section{Released Artefacts}
+\label{sec:release}
+
+The release is organised so that a reader can check any number in this
+paper against its source without rerunning anything, and rerun anything
+they do not trust.
+
+\begin{itemize}\itemsep1pt \parskip0pt \topsep2pt
+\item \textbf{Corruption engine and parameters.} All nine corruptions,
+their per-severity parameters, the declared calibration statistic for
+each, and the calibration harness that verifies monotonicity. Seeding is
+a stable hash of image identity, corruption, severity and global seed,
+so the corrupted benchmark regenerates bit-identically from the source
+datasets on any platform. No imagery is redistributed.
+\item \textbf{Evaluation pipeline.} Tiling, prediction remapping,
+class-agnostic NMS, the shared IoU-matching evaluator, the
+F1-maximising threshold selection, and the bootstrap interval
+computation, as run.
+\item \textbf{Per-condition results with intervals.} One row per
+(model, dataset, corruption, severity) for all 168 conditions, carrying
+recall with its bootstrap 95\% interval, in a single flat CSV. The
+mitigation and multi-seed arms ship as separate tables in the same
+column shape, so they can be joined on the condition key.
+\item \textbf{Raw sweep records.} The full per-run table underlying the
+above, including precision, F1, mAP$_{50}$, mAP$_{50:95}$, recall by
+COCO area band, ground-truth and true-positive counts, the frozen
+confidence threshold actually used, and the git commit and config hash
+for each run.
+\item \textbf{Training configurations.} Every config referenced here,
+including the three mitigation arms and the two additional seeds, at the
+exact settings that produced the reported numbers.
+\end{itemize}
+
+Every table in this paper is generated from those files by a checked
+script rather than transcribed, and the build fails if any printed value
+disagrees with its source record.
+
+\section{Conclusion}
+
+AegisBench measures what aerial search-and-rescue person detectors do
+under the conditions that cause them to be launched, using physically
+modelled corruptions at calibrated severities and operating points a
+fielded system could actually have chosen in advance. Degradation across
+168 conditions is uneven, does not transfer between capture regimes, and
+is not summarised by any single number. Low light drives all three
+architectures to exactly zero recall on both datasets, a result that
+survives a threshold-independent check, a three-seed repeat and a test
+on real night imagery, and the failure takes the form of detections
+disappearing rather than boxes drifting, which is the form least visible
+to an operator. Targeted augmentation moves that floor at a severity it
+never trained on, confirming the deficit is one of data coverage rather
+than architecture, but its cost on untrained conditions changes sign
+across architectures. The measurement, not the mitigation, is the
+contribution: until robustness for this task is reported per condition,
+a deployment decision is being made on a number that does not describe
+the mission.

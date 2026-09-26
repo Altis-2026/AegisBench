@@ -1,0 +1,74 @@
+\section{Introduction}
+\label{sec:intro}
+
+Uncrewed aerial imagery is now a routine instrument for wide-area search
+and rescue, and automated person detection is what makes reviewing that
+coverage tractable. Speed dominates outcomes: incident data show most
+missing subjects are located within the first day, with recovery odds
+declining as search time lengthens~\cite{koester2008lost}. A detector
+that misses a person in frame is not a benign error.
+
+The two standard benchmarks for this task, HERIDAL~\cite{bozic2019heridal}
+and SARD~\cite{sambolek2021sard}, both report strong accuracy, and both
+were collected in calm, clear, well-lit conditions. Real missions are
+launched because something has gone wrong: after a flood, during a
+wildfire, in a storm, or at night. No existing benchmark systematically
+measures how these detectors behave under the atmospheric conditions
+that trigger their deployment, so the gap between benchmarked accuracy
+and operational reliability is, at present, unmeasured.
+
+This gap is unusually tractable in Earth observation, because the
+relevant conditions are physically characterisable. Atmospheric
+scattering, sediment-laden water, rain, and photon-limited imaging all
+have established optical models in the remote-sensing and vision
+literature~\cite{koschmieder1924theorie,narasimhan2002vision,garg2007rain,chen2018dark}.
+Rather than argue that the evaluation is missing, we build it from those
+models.
+
+AegisBench applies nine physically modelled corruptions across four
+disaster families to the HERIDAL and SARD test sets and evaluates three
+architecturally distinct detectors over all resulting conditions. Three
+choices make the result an evaluation protocol rather than a
+demonstration. Each corruption is derived from a documented optical
+model of a named disaster condition, so a result maps onto an operating
+condition a responder can recognise. Each severity is calibrated against
+a declared, machine-verified image statistic rather than chosen by eye,
+so severity claims are falsifiable. Every detector's confidence
+threshold is selected once on clean validation data and frozen across
+all corrupted conditions, matching how a system is fielded rather than a
+best case unavailable mid-mission.
+
+What the benchmark then measures is not a uniform loss of accuracy. It
+is a set of failures that differ by condition, by capture regime and by
+architecture, with one of them sitting at the absolute floor. We report
+the measurement, establish that the floor is not an artefact of
+thresholds, seeds or the corruption model, and then show what it takes
+to move it.
+
+\paragraph{Contributions.}
+\begin{itemize}\itemsep1pt \parskip0pt \topsep2pt
+\item A physically grounded corruption benchmark for aerial
+search-and-rescue person detection: nine corruptions, four disaster
+families, three calibrated severities, bit-reproducible from the source
+datasets without redistributing imagery
+(Section~\ref{sec:benchmark}).
+\item A 168-condition evaluation of three architecturally distinct
+detectors under one shared evaluator at frozen operating points, with
+bootstrap intervals on every condition, showing that degradation is
+uneven, that it does not transfer between capture regimes, and that
+low light drives all three architectures to exactly zero recall
+(Section~\ref{sec:results}).
+\item Three independent checks that the zero is real rather than an
+artefact: a threshold-independent mAP analysis, a three-seed repeat, and
+an evaluation on real night drone imagery at the frozen operating point
+(Sections~\ref{sec:results} and~\ref{sec:mitigation}).
+\item A localisation analysis showing the failure is a loss of
+detections rather than of box placement, which identifies the failure as
+silent and locates where a mitigation must act
+(Section~\ref{sec:results}).
+\item A mitigation study that lifts severity-3 low-light recall off the
+floor by training only on severities 1 and 2, and a measurement of what
+that costs on the other eight corruptions, which turns out to be
+architecture-dependent rather than a single robustness tax
+(Section~\ref{sec:mitigation}).
+\end{itemize}

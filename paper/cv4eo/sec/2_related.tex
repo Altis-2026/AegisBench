@@ -1,0 +1,61 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Aerial person detection for search and rescue.}
+HERIDAL~\cite{bozic2019heridal} and SARD~\cite{sambolek2021sard} are the
+two datasets this task is normally validated on. They differ in capture
+regime, HERIDAL at high altitude over wilderness terrain with very small
+subjects and SARD at lower altitude with larger relative object size,
+and together they cover most of what the literature reports. Both were
+collected in clear daytime conditions, and both are evaluated that way.
+VisDrone~\cite{zhu2022visdrone} is broader in scene content and includes
+genuine night frames, but it is urban and artificially lit, and person
+annotations there describe a different operating context than wilderness
+search. We use it only as an independent check, never for training,
+calibration or threshold selection.
+
+\paragraph{Corruption robustness benchmarks.}
+ImageNet-C~\cite{hendrycks2019imagenetc} established the pattern this
+work follows: hold the dataset fixed, apply a fixed corruption ladder,
+and report accuracy per condition rather than as a single number.
+Michaelis \etal~\cite{michaelis2019benchmarking} carried the protocol to
+detection and showed stylisation-based augmentation recovers a
+substantial part of the loss, which is the independent precedent our
+mitigation arm draws on. These benchmarks are built from generic image
+operations chosen for breadth. That is the right choice for a general
+recognition benchmark and the wrong one here, because a responder
+selecting a system for a night flood mission needs a number attached to
+a named condition, not to a filter. Foggy Cityscapes~\cite{sakaridis2018foggy}
+is the closest precedent for the alternative: it synthesises fog from
+the Koschmieder model on real imagery with depth, and demonstrates that
+a physically derived corruption applied to real scenes supports
+controlled attribution. AegisBench extends that stance from one
+condition in one domain to nine conditions across four disaster families
+in aerial Earth observation, and adds a declared per-corruption
+calibration statistic so that severity claims are falsifiable rather
+than stipulated.
+
+\paragraph{Optical models of degraded imaging.}
+The corruption implementations are not new physics. Atmospheric
+scattering follows Koschmieder~\cite{koschmieder1924theorie} in the form
+standardised for vision by Narasimhan and
+Nayar~\cite{narasimhan2002vision}; rain streaks follow the additive
+directional model of Garg and Nayar~\cite{garg2007rain}; low light
+follows the linear-domain photometric account of photon-limited capture
+used by Chen \etal~\cite{chen2018dark}, including the signal-dependent
+noise that dominates as light falls. The contribution is not the models
+but their use as a calibrated, reproducible evaluation axis for a
+safety-of-life aerial task, together with the parameter ranges,
+calibration statistics and seeding discipline that make a severity mean
+the same thing across capture regimes.
+
+\paragraph{What is missing.}
+Across these lines of work, robustness for aerial search and rescue is
+reported either under clear conditions or under generic distortions, and
+almost always at a tuned operating point. None of the three gaps is
+exotic: what is absent is a benchmark that names the disaster condition,
+calibrates its severity, and scores every architecture through one
+evaluator at a threshold a fielded system could actually have chosen in
+advance. That combination is what AegisBench supplies, and it is what
+makes the low-light result in Section~\ref{sec:results} interpretable as
+an operational finding rather than a tuning artefact.

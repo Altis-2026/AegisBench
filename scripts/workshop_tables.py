@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Build the three workshop-requested tables from existing CSVs.
+"""Build the released per-condition result tables from existing CSVs.
 
-Nothing here re-runs training or inference. It only reformats numbers
-that are already computed elsewhere, into the column shapes the workshop
-prompt asked for, written to results/workshop/ so nothing here can be
-confused with the GRSL letter's own committed numbers.
+Nothing here re-runs training or inference. It reformats numbers that are
+already computed elsewhere into the shape a reader of the paper needs,
+written to results/workshop/ so nothing here can be confused with the raw
+sweep records in results/sweep/.
 
-Task 1 (mitigation before/after) and Task 3 (per-condition CI) read from
-results/sweep/master_ci.csv and results/sweep/ci_{sard,heridal}.csv --
-the same files the GRSL letter is verified against -- once the mitigation
-sweep has actually been run and appended there.
+Two rules this script follows, because the paper depends on them:
 
-Task 2 (multi-seed) reads from results/workshop/master_ci_seeds.csv and
-results/workshop/ci_seeds.csv, which do not exist until
-configs/sweep_models_sard_seeds.yaml has been run. This script says so
-plainly rather than producing an empty or fabricated table.
+  * Recall, precision and F1 are the POINT ESTIMATES from the master
+    sweep record (the `recall` column), not the bootstrap means. The
+    bootstrap files contribute only the interval endpoints. Mixing the
+    two is how a table ends up half a thousandth off from its own source,
+    which is exactly the kind of drift the verifier exists to catch.
+  * If an input is missing, say so and emit nothing for that table,
+    rather than emitting a short or empty one that looks complete.
 
   python scripts/workshop_tables.py
 """
@@ -26,12 +26,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "results/workshop"
 
-BASELINE_NAME = {"yolo11": "yolo11", "rtdetr": "rtdetr", "fasterrcnn": "fasterrcnn"}
-MITIGATED_NAME = {"yolo11": "yolo11_aug_lowlight", "rtdetr": "rtdetr_aug_lowlight",
-                  "fasterrcnn": "fasterrcnn_aug_lowlight"}
+BASELINES = ["fasterrcnn", "rtdetr", "yolo11"]
+MITIGATED = {"fasterrcnn": "fasterrcnn_aug_lowlight",
+             "rtdetr": "rtdetr_aug_lowlight",
+             "yolo11": "yolo11_aug_lowlight"}
+SEEDS = {"17": "yolo11_seed17", "42": "yolo11_seed42", "123": "yolo11_seed123"}
 CORRUPTIONS = ["water_glare", "turbidity_cast", "inundation", "smoke_haze",
-              "fire_warm_tint", "rain_streaks", "motion_blur", "low_light",
-              "dust_haze"]
+               "fire_warm_tint", "rain_streaks", "motion_blur", "low_light",
+               "dust_haze"]
+CONDITIONS = [("clean", "0")] + [(c, s) for c in CORRUPTIONS for s in "123"]
 
 
 def read_csv(path):
@@ -41,77 +44,12 @@ def read_csv(path):
         return list(csv.DictReader(fh))
 
 
-def task1_mitigation_table():
-    """[Model, Dataset, Condition, Recall_before, Recall_after, Delta]."""
-    ci_sard = {(r["model"], r["corruption"], r["severity"]): r
-              for r in read_csv(ROOT / "results/sweep/ci_sard.csv")}
-    if not any(k[0] in MITIGATED_NAME.values() for k in ci_sard):
-        print("Task 1: no mitigated-model rows found in "
-              "results/sweep/ci_sard.csv yet. Run the mitigation sweep "
-              "(configs/sweep_models_sard_mitigation.yaml) first -- this "
-              "is the same run GRSL needs, nothing extra to do for it.")
-        return []
-
-    rows = []
-    for base, mit in zip(BASELINE_NAME.values(), MITIGATED_NAME.values()):
-        conditions = [("clean", "0")] + [(c, s) for c in CORRUPTIONS for s in "123"]
-        for corr, sev in conditions:
-            before = ci_sard.get((base, corr, sev))
-            after = ci_sard.get((mit, corr, sev))
-            if not (before and after):
-                continue
-            b = float(before["recall_mean"])
-            a = float(after["recall_mean"])
-            rows.append({
-                "Model": base, "Dataset": "sard",
-                "Condition": "clean" if corr == "clean" else f"{corr}_s{sev}",
-                "Recall_before": round(b, 4), "Recall_after": round(a, 4),
-                "Delta": round(a - b, 4),
-                "Recall_after_CI_lo": round(float(after["recall_ci_lo"]), 4),
-                "Recall_after_CI_hi": round(float(after["recall_ci_hi"]), 4),
-            })
-    return rows
+def index(rows, *keys):
+    return {tuple(r[k] for k in keys): r for r in rows}
 
 
-def task2_multiseed_table():
-    """Recall at low_light severity 3, one row per seed."""
-    ci_path = OUT / "ci_seeds.csv"
-    ci = read_csv(ci_path)
-    if not ci:
-        print(f"Task 2: {ci_path} does not exist yet. Run "
-              "configs/train_yolo11_sard_seed{42,123}.yaml, then the sweep "
-              "at configs/sweep_models_sard_seeds.yaml with "
-              "--out results/workshop/master_ci_seeds.csv and bootstrap CI "
-              "into --out results/workshop/ci_seeds.csv, matching the "
-              "column shape of results/sweep/ci_sard.csv.")
-        return []
-    rows = []
-    for r in ci:
-        if r["corruption"] == "low_light" and r["severity"] == "3":
-            rows.append({
-                "Seed": r["model"].replace("yolo11_seed", ""),
-                "Recall": round(float(r["recall_mean"]), 4),
-                "CI_lo": round(float(r["recall_ci_lo"]), 4),
-                "CI_hi": round(float(r["recall_ci_hi"]), 4),
-            })
-    return rows
-
-
-def task3_consolidated_ci():
-    """[Model, Dataset, Corruption, Severity, Recall, CI_low, CI_high]
-    for all 168 conditions. Already fully computed -- this just merges
-    the two existing per-dataset files into one."""
-    rows = []
-    for dataset in ("heridal", "sard"):
-        for r in read_csv(ROOT / f"results/sweep/ci_{dataset}.csv"):
-            rows.append({
-                "Model": r["model"], "Dataset": dataset,
-                "Corruption": r["corruption"], "Severity": r["severity"],
-                "Recall": round(float(r["recall_mean"]), 4),
-                "CI_low": round(float(r["recall_ci_lo"]), 4),
-                "CI_high": round(float(r["recall_ci_hi"]), 4),
-            })
-    return rows
+def f(row, field, nd=4):
+    return round(float(row[field]), nd)
 
 
 def write_csv(rows, path, fields):
@@ -120,31 +58,152 @@ def write_csv(rows, path, fields):
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
-    print(f"wrote {len(rows)} rows -> {path}")
+    print(f"wrote {len(rows):4d} rows -> {path.relative_to(ROOT)}")
+
+
+# ------------------------------------------------------------------ 1
+
+BENCH_FIELDS = ["model", "dataset", "family", "corruption", "severity",
+                "conf_thresh", "n_images", "n_gt", "tp", "fp",
+                "recall", "recall_ci_lo", "recall_ci_hi",
+                "precision", "f1", "map50", "map50_95"]
+
+
+def benchmark_table(point, ci):
+    """The 168 headline conditions: 3 models x 2 datasets x 28 conditions."""
+    rows, missing = [], 0
+    for dataset in ("heridal", "sard"):
+        for model in BASELINES:
+            for corr, sev in CONDITIONS:
+                p = point.get((model, dataset, corr, sev))
+                c = ci.get((model, dataset, corr, sev))
+                if not (p and c):
+                    missing += 1
+                    continue
+                rows.append({
+                    "model": model, "dataset": dataset, "family": p["family"],
+                    "corruption": corr, "severity": sev,
+                    "conf_thresh": p["conf_thresh"], "n_images": c["n_images"],
+                    "n_gt": p["n_gt"], "tp": p["tp"], "fp": p["fp"],
+                    "recall": f(p, "recall"),
+                    "recall_ci_lo": f(c, "recall_ci_lo"),
+                    "recall_ci_hi": f(c, "recall_ci_hi"),
+                    "precision": f(p, "precision"), "f1": f(p, "f1"),
+                    "map50": f(p, "map50"), "map50_95": f(p, "map50_95"),
+                })
+    if missing:
+        print(f"  NOTE: {missing} of 168 conditions missing from the source "
+              "files; the table below is incomplete. Check "
+              "results/sweep/master_ci.csv and ci_{heridal,sard}.csv.")
+    return rows
+
+
+# ------------------------------------------------------------------ 2
+
+MIT_FIELDS = ["model", "dataset", "corruption", "severity",
+              "recall_before", "recall_after", "delta",
+              "recall_after_ci_lo", "recall_after_ci_hi",
+              "conf_thresh_before", "conf_thresh_after", "trained_on"]
+
+
+def mitigation_table(point, ci):
+    """Before/after for the low-light augmentation arms, all 28 conditions.
+
+    `trained_on` marks which rows the augmentation actually saw, so a
+    reader can tell the generalisation result (low_light severity 3) from
+    the in-distribution ones without consulting the paper.
+    """
+    if not any((m, "sard", "clean", "0") in point for m in MITIGATED.values()):
+        print("mitigation: no *_aug_lowlight rows in "
+              "results/sweep/master_ci.csv yet. Run "
+              "configs/sweep_models_sard_mitigation.yaml first.")
+        return []
+    rows = []
+    for base, mit in MITIGATED.items():
+        thr_b = point[(base, "sard", "clean", "0")]["conf_thresh"]
+        thr_a = point[(mit, "sard", "clean", "0")]["conf_thresh"]
+        for corr, sev in CONDITIONS:
+            b = point.get((base, "sard", corr, sev))
+            a = point.get((mit, "sard", corr, sev))
+            c = ci.get((mit, "sard", corr, sev))
+            if not (b and a and c):
+                continue
+            rb, ra = float(b["recall"]), float(a["recall"])
+            rows.append({
+                "model": base, "dataset": "sard", "corruption": corr,
+                "severity": sev, "recall_before": round(rb, 4),
+                "recall_after": round(ra, 4), "delta": round(ra - rb, 4),
+                "recall_after_ci_lo": f(c, "recall_ci_lo"),
+                "recall_after_ci_hi": f(c, "recall_ci_hi"),
+                "conf_thresh_before": thr_b, "conf_thresh_after": thr_a,
+                "trained_on": "yes" if (corr == "low_light" and sev in "12") else "no",
+            })
+    return rows
+
+
+# ------------------------------------------------------------------ 3
+
+SEED_FIELDS = ["seed", "model", "dataset", "corruption", "severity",
+               "conf_thresh", "recall", "recall_ci_lo", "recall_ci_hi",
+               "precision", "f1"]
+
+
+def multiseed_table():
+    """All 28 conditions for each of the three SARD YOLOv11 seeds.
+
+    The paper quotes only the low_light rows, but the full grid is what
+    lets a reader check that the seeds are comparable everywhere else and
+    not only where we looked.
+    """
+    point = index(read_csv(OUT / "master_ci_seeds.csv"),
+                  "model", "corruption", "severity")
+    ci = index(read_csv(OUT / "ci_seeds.csv"), "model", "corruption", "severity")
+    if not point or not ci:
+        print("multi-seed: results/workshop/{master_ci_seeds,ci_seeds}.csv "
+              "not found. Train configs/train_yolo11_sard_seed{42,123}.yaml, "
+              "then run configs/sweep_models_sard_seeds.yaml.")
+        return []
+    rows = []
+    for seed, model in SEEDS.items():
+        for corr, sev in CONDITIONS:
+            p, c = point.get((model, corr, sev)), ci.get((model, corr, sev))
+            if not (p and c):
+                continue
+            rows.append({
+                "seed": seed, "model": "yolo11", "dataset": "sard",
+                "corruption": corr, "severity": sev,
+                "conf_thresh": p["conf_thresh"], "recall": f(p, "recall"),
+                "recall_ci_lo": f(c, "recall_ci_lo"),
+                "recall_ci_hi": f(c, "recall_ci_hi"),
+                "precision": f(p, "precision"), "f1": f(p, "f1"),
+            })
+    return rows
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    point = index(read_csv(ROOT / "results/sweep/master_ci.csv"),
+                  "model", "dataset", "corruption", "severity")
+    ci = {}
+    for name in ("ci_heridal.csv", "ci_sard.csv"):
+        ci.update(index(read_csv(ROOT / "results/sweep" / name),
+                        "model", "dataset", "corruption", "severity"))
+    if not point:
+        print("results/sweep/master_ci.csv not found; nothing to do.")
+        return 1
 
-    t1 = task1_mitigation_table()
-    if t1:
-        write_csv(t1, OUT / "task1_mitigation.csv",
-                  ["Model", "Dataset", "Condition", "Recall_before",
-                   "Recall_after", "Delta", "Recall_after_CI_lo",
-                   "Recall_after_CI_hi"])
+    bench = benchmark_table(point, ci)
+    write_csv(bench, OUT / "benchmark_168_conditions.csv", BENCH_FIELDS)
+    if len(bench) != 168:
+        print(f"  WARNING: {len(bench)} rows, not 168.")
 
-    t2 = task2_multiseed_table()
-    if t2:
-        write_csv(t2, OUT / "task2_multiseed.csv", ["Seed", "Recall", "CI_lo", "CI_hi"])
+    mit = mitigation_table(point, ci)
+    if mit:
+        write_csv(mit, OUT / "mitigation_sard_lowlight.csv", MIT_FIELDS)
 
-    t3 = task3_consolidated_ci()
-    write_csv(t3, OUT / "task3_all_conditions_ci.csv",
-             ["Model", "Dataset", "Corruption", "Severity", "Recall",
-              "CI_low", "CI_high"])
-    if len(t3) != 168:
-        print(f"NOTE: {len(t3)} rows, not 168 -- some conditions are "
-              "missing CI. Check results/sweep/ci_heridal.csv and "
-              "ci_sard.csv directly before trusting this table.")
+    seeds = multiseed_table()
+    if seeds:
+        write_csv(seeds, OUT / "multiseed_sard_yolo11.csv", SEED_FIELDS)
     return 0
 
 

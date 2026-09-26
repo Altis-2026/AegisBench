@@ -1,0 +1,54 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+\usepackage[review,applications]{wacv}      % To produce the REVIEW version
+%\usepackage[applications]{wacv}            % To produce the CAMERA-READY version
+%\usepackage[pagenumbers,applications]{wacv} % To force page numbers
+
+\input{preamble}
+
+% Support for included graphics in the CVF style.
+\definecolor{wacvblue}{rgb}{0.21, 0.49, 0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=wacvblue]{hyperref}
+
+\def\wacvPaperID{*****} % *** Enter the CV4EO Paper ID here
+\def\confName{CV4EO}
+\def\confYear{2027}
+
+\title{AegisBench: Benchmarking Aerial Person Detection Under\\
+Physically Modelled Disaster Conditions}
+
+\author{First Author\\
+Institution1\\
+Institution1 address\\
+{\tt\small firstauthor@i1.org}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+\and
+Second Author\\
+Institution2\\
+First line of institution2 address\\
+{\tt\small secondauthor@i2.org}
+}
+
+\begin{document}
+\maketitle
+
+\input{sec/0_abstract}
+\input{sec/1_intro}
+\input{sec/2_related}
+\input{sec/3_benchmark}
+\input{sec/4_results}
+\input{sec/5_mitigation}
+\input{sec/6_discussion}
+
+{
+    \small
+    \bibliographystyle{ieeenat_fullname}
+    \bibliography{aegisbench}
+}
+
+\end{document}

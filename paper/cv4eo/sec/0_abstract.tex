@@ -1,0 +1,36 @@
+\begin{abstract}
+Aerial person detection supports search and rescue after floods,
+wildfires, storms, and at night, yet the benchmarks used to validate it
+were collected in calm, clear, well-lit conditions. The operating
+conditions that trigger a deployment are precisely the ones that have
+never been measured. We present AegisBench, an evaluation benchmark that
+places aerial search-and-rescue person detection under nine physically
+modelled visual corruptions spanning four disaster families, each at
+three severities calibrated against a declared, machine-verified image
+statistic. Corruptions are derived from documented atmospheric optics,
+including the Koschmieder scattering model for smoke and dust and a
+linear-domain photometric model for low light, rather than from generic
+image filters. We evaluate three architecturally distinct detectors
+across 168 conditions on two datasets spanning the high- and
+low-altitude capture regimes, scoring every model with one shared
+evaluator at operating points frozen on clean validation data, as a
+fielded system would be. Degradation is highly uneven and does not
+transfer across capture regimes: heavy rain costs roughly 3.6 points of
+recall at the highest severity on one dataset while ranking among the
+most damaging corruptions on the other. Low light is universal and
+catastrophic, driving recall to exactly zero for all three architectures
+on both datasets, with bootstrap confidence intervals degenerate at
+$[0.000, 0.000]$; a threshold-independent mAP analysis confirms the
+detections are absent rather than below threshold, a three-seed repeat
+reproduces the zero exactly, and a check against real night drone
+imagery reproduces the collapse. Surviving detections remain accurately
+localised, so the failure mode is a detector going blind rather than
+mislocalising, which is the mode least visible to a human reviewing the
+feed. Finally, we show the collapse is addressable but not free:
+fine-tuning on low-light severities 1 and 2 alone lifts severity-3
+recall from exactly zero to 0.059--0.188 at a held-out severity, and the
+cost to the other eight corruptions is architecture-dependent rather
+than uniform, ranging from a net gain to a mean loss of 4.3 points. We
+release the corruption engine, the evaluation pipeline, and per-condition
+results with intervals for all 168 conditions.
+\end{abstract}

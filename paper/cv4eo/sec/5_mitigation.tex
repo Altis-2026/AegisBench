@@ -1,0 +1,146 @@
+\section{Moving the Floor: A Mitigation Study}
+\label{sec:mitigation}
+
+A benchmark that only reports a failure invites the reading that the
+failure is intrinsic. The localisation analysis says otherwise: the
+detectors lose sensitivity, not box placement, which is the kind of
+deficit training data can address. We test that directly, and we design
+the test so that a positive result cannot be an artefact of training on
+the condition being scored.
+
+\subsection{Design}
+
+For each of the three SARD detectors we fine-tune the existing clean
+checkpoint on training tiles augmented with \cfd{low\_light} at
+\textbf{severities 1 and 2 only}. Severity 3, the condition where all
+three collapse, is held out of training entirely and is only ever seen
+at evaluation. Reporting a recovery at a severity the model was trained
+on would measure memorisation of a known condition; holding severity 3
+out makes the question generalisation along the ladder, which is the
+question a deployment actually faces, since the weather on the night of
+a callout is not the weather in the training set.
+
+Three further constraints keep the comparison honest. Validation data
+stays clean, enforced by the augmentation script, so the operating point
+cannot drift with the augmentation. Each mitigated checkpoint has its
+threshold re-selected on its own clean validation data by the same
+F1-maximising rule used for every other model in the paper, and then
+frozen across all 28 conditions; it does not inherit the baseline's
+threshold, because that would score a new model at another model's
+operating point. And every mitigated model is re-swept over the full
+28-condition grid, not only over low light, so that the cost of the
+intervention elsewhere is measured rather than assumed.
+
+\subsection{The collapse is addressable}
+
+Table~\ref{tab:mitigation} gives the result. At the held-out severity 3,
+recall moves off the floor for all three architectures: from exactly
+0.000 to 0.121 for Faster R-CNN, 0.059 for RT-DETR and 0.188 for
+YOLOv11, with bootstrap intervals that exclude zero in every case. At
+the trained severities the recovery is much larger, from 0.419 to 0.843,
+0.260 to 0.772 and 0.184 to 0.807 at severity 1, and from at most 0.077
+to between 0.529 and 0.647 at severity 2.
+
+Two readings are available and we take the conservative one. A
+severity-3 recall of 0.059 to 0.188 is not an operational fix; a system
+that finds one subject in five at late dusk is still failing. What the
+result establishes is narrower and sufficient for the benchmark's
+purpose: the zero is not a hard limit of these architectures under
+photon-limited capture, it is a data-coverage deficit that responds to
+targeted training, and it responds even one full severity step beyond
+the training distribution. The benchmark therefore measures something
+that can be optimised against, which is the property that makes an
+evaluation axis useful rather than merely discouraging.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\caption{Low-light mitigation on SARD. Each model is fine-tuned on
+severities 1 and 2 only; \textbf{severity 3 is held out of training} and
+seen only at evaluation. Thresholds are re-selected on clean validation
+data for each mitigated checkpoint and frozen. Bootstrap 95\% intervals
+over 1000 resamples for the mitigated models.}
+\label{tab:mitigation}
+\begin{tabular}{llcccc}
+\toprule
+Model & & Clean & s1 & s2 & s3 \\
+\midrule
+\multirow{3}{*}{F.\ R-CNN}
+ & before & 0.879 & 0.419 & 0.077 & 0.000 \\
+ & after  & 0.900 & 0.843 & 0.641 & \textbf{0.121} \\
+ & 95\%   &       & \ci{0.818}{0.865} & \ci{0.612}{0.669} & \ci{0.101}{0.140} \\
+\midrule
+\multirow{3}{*}{RT-DETR}
+ & before & 0.888 & 0.260 & 0.013 & 0.000 \\
+ & after  & 0.858 & 0.772 & 0.529 & \textbf{0.059} \\
+ & 95\%   &       & \ci{0.745}{0.798} & \ci{0.497}{0.560} & \ci{0.046}{0.073} \\
+\midrule
+\multirow{3}{*}{YOLOv11}
+ & before & 0.891 & 0.184 & 0.007 & 0.000 \\
+ & after  & 0.883 & 0.807 & 0.647 & \textbf{0.188} \\
+ & 95\%   &       & \ci{0.782}{0.830} & \ci{0.615}{0.678} & \ci{0.168}{0.211} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What it costs, and why the cost is not one number}
+
+The interesting part is the price. Because each mitigated model was
+re-swept over the whole grid, we can measure the change on the eight
+corruptions that were never trained on, 24 conditions per model, as well
+as on clean data (Table~\ref{tab:tradeoff}).
+
+The result does not resolve into a single robustness tax. Faster R-CNN
+improves on average by 3.7 points across the other 24 conditions, gains
+2.1 points on clean data, and its worst single regression is 2.5 points,
+so nothing degrades by more than the noise band of 3 points that we use
+as a reporting cutoff. RT-DETR moves the other way: it loses 4.3 points
+on average, regresses by more than 3 points on 17 of 24 conditions, loses
+3.0 points on clean data, and its worst case is 11.6 points. YOLOv11 sits
+between them, losing 1.9 points on average with 8 of 24 conditions
+regressing by more than 3 points.
+
+Because all three arms use the same augmented data, the same held-out
+severity, the same threshold-selection rule and the same evaluator, the
+spread across them is attributable to architecture rather than to
+protocol. We do not claim a mechanism. We note that the transformer
+detector, which already carries the largest relative recall drop of the
+three in every disaster family on SARD (Table~\ref{tab:family}), is also
+the one for which targeted augmentation is most
+expensive elsewhere, and that this is precisely the kind of interaction
+that a benchmark reporting one averaged robustness number could not
+surface. The practical implication for a deployment is that
+``augment for the condition you expect'' is sound advice for some
+architectures and a regression for others, and which one it is has to be
+measured on the full grid rather than inferred.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\caption{Cost of low-light augmentation on conditions it was not trained
+for: change in recall over the eight other corruptions at three
+severities (24 conditions per model), plus clean. Positive is better.
+The sign of the mean differs by architecture.}
+\label{tab:tradeoff}
+\begin{tabular}{lcccc}
+\toprule
+ & $\Delta$ clean & Mean $\Delta$ & Worst & \#\,worse \\
+ &                & (24 cond.)    & $\Delta$ & by $>$0.03 \\
+\midrule
+F.\ R-CNN & $+0.021$ & $+0.037$ & $-0.025$ & 0/24 \\
+YOLOv11   & $-0.007$ & $-0.019$ & $-0.066$ & 8/24 \\
+RT-DETR   & $-0.030$ & $-0.043$ & $-0.116$ & 17/24 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scope of this study}
+
+The mitigation arm is one augmentation strategy, on one dataset, at one
+seed per architecture, targeting one corruption. It is enough to settle
+whether the floor is movable and to show that the cost of moving it is
+architecture-dependent. It is not enough to recommend a training recipe,
+and we do not. The natural extensions, sweeping the augmentation across
+the other corruptions, repeating it on HERIDAL, and combining
+conditions as a real mission would, are supported by the released
+pipeline and are left open.

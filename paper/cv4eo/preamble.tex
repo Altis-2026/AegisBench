@@ -1,0 +1,13 @@
+\usepackage{microtype}
+\usepackage{multirow}
+
+% Corruption / config identifiers, so a name in prose is visibly the same
+% token as the one in the released code.
+\newcommand{\cfd}{\texttt}
+
+% Bootstrap interval, typeset small under the point estimate it belongs to.
+\newcommand{\ci}[2]{{\scriptsize [#1,\,#2]}}
+
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\setcounter{topnumber}{3}
