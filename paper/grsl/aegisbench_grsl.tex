@@ -28,30 +28,34 @@
 
 \begin{document}
 
-\title{AegisBench: Physically Modeled Corruption Benchmark\\for Aerial Search-and-Rescue Person Detection}
+\title{AegisBench: A Physically Calibrated Atmospheric Degradation\\Benchmark for Aerial Disaster-Response Imagery}
 
 \author{Prem~Kamasani and Amogh~Vinaykumar%
 \thanks{The authors are with Flower Mound High School, Flower Mound, TX 75028 USA (e-mail: altisorbital@gmail.com).}%
 \thanks{The benchmark code, corruption engine, and evaluation pipeline are available at \protect\url{https://github.com/Altis-2026/AegisBench}. No imagery is redistributed; every corrupted image regenerates bit-identically from the source datasets.}}
 
 \markboth{IEEE Geoscience and Remote Sensing Letters}%
-{Kamasani \MakeLowercase{\textit{and}} Vinaykumar: A Physically Modeled Corruption Benchmark for Aerial Search-and-Rescue Person Detection}
+{Kamasani \MakeLowercase{\textit{and}} Vinaykumar: A Physically Calibrated Atmospheric Degradation Benchmark for Aerial Disaster-Response Imagery}
 
 \maketitle
 
 \begin{abstract}
-Aerial person detection supports land search and rescue, but the airborne
-imagery used to benchmark it is acquired in clear air and good light,
-whereas the missions that need it are flown into smoke, dust, rain, and
-darkness. We quantify the resulting gap. AegisBench applies nine
-corruptions derived from documented radiative transfer and sensor models,
-including Koschmieder scattering for the smoke and dust families and a
-linear-domain photometric model for illumination loss, at three severities
-each calibrated against a declared and machine-checked image statistic.
-Three architecturally distinct detectors are evaluated across 168
-conditions on two airborne datasets spanning the high- and low-altitude
-regimes, scored by one evaluator at operating points frozen on
-clear-condition validation data. Degradation is strongly
+Atmospheric scattering and photon-limited illumination are routinely
+modeled in remote sensing and just as routinely corrected out before
+analysis. In aerial disaster response, they are not nuisances to remove;
+they are the operating condition, since the event that triggers a flight
+is often the same event that fills the air with smoke or dust or leaves
+responders working after dark. Yet the airborne imagery used to
+benchmark automated person detection for search and rescue is acquired
+in clear air and good light. We quantify the resulting gap. AegisBench
+applies nine corruptions derived from documented radiative transfer and
+sensor models, including Koschmieder scattering for the smoke and dust
+families and a linear-domain photometric model for illumination loss, at
+three severities each calibrated against a declared and machine-checked
+image statistic. Three architecturally distinct detectors are evaluated
+across 168 conditions on two airborne datasets spanning the high- and
+low-altitude regimes, scored by one evaluator at operating points frozen
+on clear-condition validation data. Degradation is strongly
 condition-dependent: at the highest severity, rain costs YOLOv11 only 3.6
 points of recall on low-altitude imagery but removes almost all of it at
 high altitude. Illumination loss is the one universal failure. At 4.5
@@ -66,8 +70,9 @@ consistent with the modeled result.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Aerial imagery, atmospheric scattering, benchmark, low-light imaging,
-object detection, robustness, search and rescue, unmanned aerial vehicles.
+Aerial imagery, atmospheric scattering, benchmark, disaster response,
+low-light imaging, object detection, radiative transfer, robustness,
+search and rescue, unmanned aerial vehicles.
 \end{IEEEkeywords}
 
 % ---------------------------------------------------------------------
