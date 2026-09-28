@@ -40,11 +40,10 @@
 \maketitle
 
 \begin{abstract}
-Atmospheric scattering and photon-limited illumination are routinely
-modeled in remote sensing and just as routinely corrected out before
-analysis. In aerial disaster response, they are not nuisances to remove;
-they are the operating condition, since the event that triggers a flight
-is often the same event that fills the air with smoke or dust or leaves
+Atmospheric scattering and photon-limited illumination, routinely
+modeled and corrected out elsewhere in remote sensing, are the operating
+condition in aerial disaster response rather than a nuisance: the event
+that triggers a flight often fills the air with smoke or dust or leaves
 responders working after dark. Yet the airborne imagery used to
 benchmark automated person detection for search and rescue is acquired
 in clear air and good light. We quantify the resulting gap. AegisBench
@@ -494,17 +493,20 @@ rather than localization.
 \subsection{Real Night Imagery}
 
 To test the modeled result outside our own pipeline, we ran the
-SARD-trained YOLOv11 model, unmodified, on 40 real night images from
+SARD-trained YOLOv11 model, unmodified, on 300 real night images from
 VisDrone~\cite{zhu2021visdrone}, an unrelated airborne benchmark. Images
 were selected as the lowest-luminance frames in its test split and
 manually confirmed to show genuine dusk or night scenes. Recall against
-VisDrone's own person annotations was 0.016, recovering 2 of 128
-annotated persons, comparable to our modeled severity 1 and close to the
-total failure at severity 3. This is a small, uncontrolled sample from a
-different surface type, lit urban scenes rather than wilderness terrain,
-and it is not a substitute for systematic validation against real
-adverse-condition search imagery. It is, however, evidence from real
-sensor data that the failure is not an artifact of the corruption model.
+VisDrone's own person annotations was 0.003, recovering 2 of 759
+annotated persons, consistent with the total failure the modeled
+corruption reaches at severity 3. The low-light-mitigated checkpoint
+recovers 4 of 759 on the same images, moving the floor as it does on the
+modeled corruption but not to anything an operator could rely on. This
+remains a sample from a different surface type, lit urban scenes rather
+than wilderness terrain, and it is not a substitute for systematic
+validation against real adverse-condition search imagery; it is,
+however, evidence from real sensor data that the failure is not an
+artifact of the corruption model.
 
 % ---------------------------------------------------------------------
 \section{Limitations}
@@ -518,10 +520,10 @@ adverse-condition imagery rarely comes with a matched clear counterpart
 of the same scene, but it is also the ceiling: the benchmark measures
 response to modeled optics, and the VisDrone check is a spot check rather
 than systematic validation. We train one seed per model per dataset, so
-the bootstrap intervals quantify test-set variance, not training
-variance. We report no mitigation; training augmentation with modeled
-illumination loss is the direct next experiment, and the pipeline for it
-is released.
+bootstrap intervals quantify test-set variance, not training variance; a
+three-seed repeat and a full mitigation study, including its cost on the
+other eight corruptions, appear in a companion submission on the same
+pipeline. The mitigated checkpoint above is one arm of that study.
 
 % ---------------------------------------------------------------------
 \section{Conclusion}
@@ -540,14 +542,11 @@ Two haze corruptions matched to within 3\% in mean optical depth differ
 6.7-fold in cost, so degradation in this domain is not reducible to a
 single scalar such as contrast or transmission.
 
-Three directions follow. Training augmentation with modeled illumination
-loss, evaluated against the frozen-threshold protocol used here, would
-test whether the failure is a data-coverage problem or an architectural
-one. Ablating transmission-field granularity against airlight
-chromaticity would establish whether spatial frequency or colour carries
-the smoke and dust discrepancy. Systematic validation against real
-adverse-condition search imagery remains the largest open gap, and the
-hardest, because such imagery is rarely collected and released.
+Two directions follow. Ablating transmission-field granularity against
+airlight chromaticity would establish whether spatial frequency or colour
+carries the smoke and dust discrepancy. Systematic validation against
+real adverse-condition search imagery remains the largest open gap, and
+the hardest, because such imagery is rarely collected and released.
 
 \section*{Acknowledgment}
 

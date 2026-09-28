@@ -191,6 +191,25 @@ def main():
     for ds, n in (("heridal", 101), ("sard", 862)):
         check(f"n_images {ds}", float(ci[("yolo11", ds, "clean", "0")]["n_images"]), n)
 
+    # ---- Real Night Imagery: expanded VisDrone check --------------------
+    visdrone = ROOT / "results/workshop/visdrone"
+    baseline = read_csv(visdrone / "expanded_baseline.csv")[0]
+    mitigated = read_csv(visdrone / "expanded_mitigated.csv")[0]
+    confirmed_n = len(
+        (visdrone / "confirmed.txt").read_text().strip().splitlines())
+
+    check("VisDrone n_images quoted", 300.0, float(baseline["n_images"]), tol=0.5)
+    check("VisDrone confirmed.txt line count", 300.0, float(confirmed_n), tol=0.5)
+    check("VisDrone n_gt quoted", 759.0, float(baseline["n_gt"]), tol=0.5)
+    check("VisDrone baseline recall (0.003 rounded)", 0.003,
+          float(baseline["recall"]), tol=0.0006)
+    check("VisDrone baseline tp (2 of 759)", 2.0,
+          round(float(baseline["recall"]) * float(baseline["n_gt"])), tol=0.5)
+    check("VisDrone mitigated n_gt matches baseline", float(baseline["n_gt"]),
+          float(mitigated["n_gt"]))
+    check("VisDrone mitigated tp (4 of 759)", 4.0,
+          round(float(mitigated["recall"]) * float(mitigated["n_gt"])), tol=0.5)
+
     print(f"{checks} checks run")
     if failures:
         print(f"\n{len(failures)} FAILED:")
