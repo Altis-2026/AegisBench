@@ -1,0 +1,26 @@
+# YOLOv11 mitigation arm on HERIDAL, matching the SARD protocol exactly.
+#
+# The pre-existing configs/train_yolo11_heridal_aug_lowlight.yaml is a
+# DIFFERENT experiment: it trains from yolo11m.pt (scratch, not a
+# fine-tune of the clean HERIDAL checkpoint) and does not hold out
+# severity 3 from the augmented tileset. That does not isolate the
+# mitigation effect the way the SARD arms do, so this is a new config
+# rather than a rerun of the old one. The old config and its tileset are
+# left untouched.
+#
+# base_weights is the clean HERIDAL run's best.pt, continuing training
+# rather than starting fresh, so the before/after delta isolates the
+# augmentation exactly as it does for SARD.
+kind: yolo11
+run_name: yolo11_heridal_aug_lowlight_v2
+base_weights: runs/yolo11/yolo11_heridal_clean/weights/best.pt
+data_yaml: data/heridal/tiles_aug_lowlight_s12/dataset.yaml
+epochs: 20
+imgsz: 1024
+batch: 2
+seed: 17
+amp: false
+optimizer: auto
+lr0: 0.001
+patience: 8
+workers: 4

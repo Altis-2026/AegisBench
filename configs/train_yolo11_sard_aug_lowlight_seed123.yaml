@@ -1,0 +1,25 @@
+# YOLOv11 mitigation arm, seed 123: identical protocol to
+# train_yolo11_sard_aug_lowlight.yaml (fine-tune on low_light severities
+# 1-2, severity 3 held out), but continuing from the independently
+# trained seed-123 clean checkpoint instead of seed 17.
+#
+# Purpose: the checklist asks for mean/SD over multiple runs, and your
+# baseline already has 3 seeds while mitigation has only 1. This closes
+# that gap for YOLOv11 specifically (the cheapest architecture to repeat).
+#
+# Reuses the same data/sard/tiles_aug_lowlight_s12 tileset already built
+# for the seed-17 arm -- the augmented tiles do not depend on which
+# checkpoint continues training on them, only the config does.
+kind: yolo11
+run_name: yolo11_sard_aug_lowlight_seed123
+base_weights: runs/yolo11/yolo11_sard_seed123/weights/best.pt
+data_yaml: data/sard/tiles_aug_lowlight_s12/dataset.yaml
+epochs: 20
+imgsz: 1024
+batch: 4
+seed: 123
+amp: true
+optimizer: auto
+lr0: 0.001
+patience: 8
+workers: 4
