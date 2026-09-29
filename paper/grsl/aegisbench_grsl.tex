@@ -63,9 +63,9 @@ detectors on both datasets, all 1000 bootstrap resamples agree, and
 mAP$_{50}$ falls to at most 0.010, confirming the collapse independently
 of any confidence threshold. Two corruptions matched to within 3\% in mean
 optical depth differ 6.7-fold in cost, so the loss is not reducible to
-contrast reduction alone. An unmodified detector run on real night imagery
-from an unrelated airborne benchmark recovers 2 of 128 annotated persons,
-consistent with the modeled result.
+contrast reduction alone. An unmodified detector run on 300 real night
+images from an unrelated airborne benchmark recovers 2 of 759 annotated
+persons, consistent with the modeled result.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -529,18 +529,17 @@ pipeline. The mitigated checkpoint above is one arm of that study.
 \section{Conclusion}
 % ---------------------------------------------------------------------
 
-Aerial person detectors for search and rescue are benchmarked on clear
-imagery and flown into degraded air and low light. Measuring the gap
-against physical parameters rather than an arbitrary severity index makes
-the failure specific: degradation is strongly condition-dependent, with
-the same corruption costing 3.6 points of recall at low altitude and
-nearly all of it at high altitude, while illumination loss drives recall
-to exactly zero for three architecturally distinct detectors on both
-datasets by 4.5 stops, confirmed independently of any confidence
-threshold and reproduced on real night imagery from an unrelated sensor.
-Two haze corruptions matched to within 3\% in mean optical depth differ
-6.7-fold in cost, so degradation in this domain is not reducible to a
-single scalar such as contrast or transmission.
+Measuring degradation against physical parameters rather than an
+arbitrary severity index turns "the system is not robust" into a
+specific, falsifiable claim tied to an operating condition a responder
+can recognize. It also carries a consequence for how a system should be
+selected and deployed: a robustness figure measured at one altitude
+regime does not transfer to another, an illumination collapse this
+uniform across architectures is unlikely to be fixed by choosing a
+different detector, and a corruption's cost is not predictable from its
+effect on a generic image statistic. None of these three findings would
+survive being compressed into a single averaged robustness score, which
+is the form most benchmarking practice still reports in.
 
 Two directions follow. Ablating transmission-field granularity against
 airlight chromaticity would establish whether spatial frequency or colour

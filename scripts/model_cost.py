@@ -29,7 +29,14 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 def count_params(model) -> int:
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    # Not filtered by requires_grad: an ultralytics model loaded from a
+    # checkpoint for inference can come back with requires_grad=False on
+    # every parameter (fused / eval-loaded state), which silently zeroed
+    # this count for YOLOv11 and RT-DETR while Faster R-CNN, loaded via a
+    # plain state_dict into a freshly constructed torchvision model, kept
+    # its default requires_grad=True and looked fine. Total parameter
+    # count is what the checklist wants regardless of grad state.
+    return sum(p.numel() for p in model.parameters())
 
 
 def time_inference(predict_fn, img, iters: int, warmup: int = 5) -> float:
@@ -89,7 +96,11 @@ def main():
     rows = []
     for w in args.weights:
         w = str(w)
-        name = Path(w).stem
+        # weights are always named best.pt/last.pt regardless of
+        # architecture (same footgun documented in
+        # ultralytics_wrapper.py's _is_rtdetr), so the stem alone
+        # collides across models; use the run directory name instead.
+        name = Path(w).parent.parent.name or Path(w).stem
         if "fasterrcnn" in w.lower():
             n_params, predict_fn, img = load_fasterrcnn(w, args.imgsz)
         else:

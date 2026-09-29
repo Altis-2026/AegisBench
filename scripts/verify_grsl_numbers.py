@@ -210,6 +210,23 @@ def main():
     check("VisDrone mitigated tp (4 of 759)", 4.0,
           round(float(mitigated["recall"]) * float(mitigated["n_gt"])), tol=0.5)
 
+    # The abstract restates the same VisDrone result independently of the
+    # Real Night Imagery subsection -- catch the two ever drifting apart
+    # again the way the abstract's stale "2 of 128" did after the check
+    # was expanded to 300 images but only the body paragraph was updated.
+    abstract = " ".join(tex[tex.index("\\begin{abstract}"):
+                            tex.index("\\end{abstract}")].split())
+    m = re.search(r"(\d+) real night images.*?recovers (\d+) of (\d+)", abstract)
+    if m:
+        check("abstract VisDrone n_images", float(m.group(1)), float(baseline["n_images"]))
+        check("abstract VisDrone tp", float(m.group(2)),
+              round(float(baseline["recall"]) * float(baseline["n_gt"])), tol=0.5)
+        check("abstract VisDrone n_gt", float(m.group(3)), float(baseline["n_gt"]))
+    else:
+        failures.append("abstract: VisDrone result sentence not found/parseable "
+                        "-- check it still exists and matches the expected phrasing")
+        checks += 1
+
     print(f"{checks} checks run")
     if failures:
         print(f"\n{len(failures)} FAILED:")
